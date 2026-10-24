@@ -353,7 +353,7 @@ export function startSyncDaemon(deps: SyncDaemonDeps): SyncDaemon {
       if (refusedUnder.get(root) === gate.credential) {
         gate = {
           state: BackgroundSyncState.REFUSED,
-          why: 'the platform refused this sign-in: run `reticle login` again',
+          why: 'the platform refused this sign-in: run `reticle connect` again',
         };
       } else refusedUnder.delete(root);
     }

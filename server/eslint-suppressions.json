@@ -72,11 +72,6 @@
       "count": 1
     }
   },
-  "src/command/cli/cli-cut-list.test.ts": {
-    "curly": {
-      "count": 2
-    }
-  },
   "src/command/cli/cli-doctor.ts": {
     "curly": {
       "count": 10

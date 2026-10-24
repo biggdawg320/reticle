@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { REPO_ROOT } from '@/machine/repo-root.js';
 import { knownCommand, LOCAL_COMMANDS, parseCliArgs } from './cli-parse.js';
 import {
   CLOUD_COMMANDS,
@@ -55,7 +59,9 @@ describe('reticle --help', () => {
 
   it('every documented command is one the CLI runs', () => {
     const runnable = new Set([...LOCAL_COMMANDS, ...CLOUD_COMMANDS]);
-    for (const cmd of DOCUMENTED_COMMANDS) expect(runnable.has(cmd), cmd).toBe(true);
+    for (const cmd of DOCUMENTED_COMMANDS) {
+      expect(runnable.has(cmd), cmd).toBe(true);
+    }
   });
 
   it('no removed or renamed name is advertised', () => {
@@ -99,7 +105,9 @@ describe('renamed commands still run', () => {
 
   it('each old name is still dispatched', () => {
     const runnable = new Set([...LOCAL_COMMANDS, ...CLOUD_COMMANDS]);
-    for (const cmd of RENAMED_COMMANDS.keys()) expect(runnable.has(cmd), cmd).toBe(true);
+    for (const cmd of RENAMED_COMMANDS.keys()) {
+      expect(runnable.has(cmd), cmd).toBe(true);
+    }
   });
 
   it('the note is one plain line, dimmed only when asked', () => {
@@ -117,6 +125,51 @@ describe('removed commands say so and fail', () => {
     }
     // Still named in telemetry, so the people typing it are visible.
     expect(knownCommand(cmd)).toBe(cmd);
+  });
+});
+
+/**
+ * The text the product prints names no removed or renamed command.
+ *
+ * The defect it catches: 3.8 removed `identify`, but the first answer to an agent on an unwired
+ * project still told it to run `npx @reticlehq/server identify`, and that command only says it was
+ * removed. `reticle login` and `kill --port` stayed in refusal text the same way. The help page is
+ * checked above; this reads the string lines of the shipped source, because those strings are
+ * written far from the command table.
+ */
+describe('shipped text names only commands that still exist', () => {
+  const OLD = new Set([...REMOVED_COMMANDS.keys(), ...RENAMED_COMMANDS.keys()]);
+  const COMMAND = /(?:\breticle|@reticlehq\/server(?:@[\w.-]+)?) ([a-z]+)\b/g;
+  // An old command may name itself: its own usage line, and the help line that says it is an alias.
+  const SELF_REFERENCE = /usage: reticle|is the same command/;
+  const isComment = (line: string): boolean => /^(\*|\/\/|\/\*)/.test(line);
+
+  it('in server, init and core source', () => {
+    const files = execFileSync(
+      'git',
+      ['ls-files', 'server/src/*.ts', 'init/src/*.ts', 'core/src/*.ts'],
+      { cwd: REPO_ROOT, encoding: 'utf8' },
+    )
+      .split('\n')
+      .filter((file) => file.length > 0 && !file.endsWith('.test.ts'));
+    expect(files.length, 'no source file was read').toBeGreaterThan(100);
+    const found: string[] = [];
+    for (const file of files) {
+      readFileSync(join(REPO_ROOT, file), 'utf8')
+        .split('\n')
+        .forEach((raw, i) => {
+          const line = raw.trim();
+          if (isComment(line) || SELF_REFERENCE.test(line)) {
+            return;
+          }
+          for (const m of line.matchAll(COMMAND)) {
+            if (OLD.has(m[1] ?? '')) {
+              found.push(`${file}:${String(i + 1)} ${m[0]}`);
+            }
+          }
+        });
+    }
+    expect(found).toEqual([]);
   });
 });
 
