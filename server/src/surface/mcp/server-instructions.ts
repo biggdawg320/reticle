@@ -37,8 +37,8 @@ import { surfaceVocabulary, listOf, type SurfaceVocabulary } from './surface-voc
  * `reticle gate` is FOLDED INTO the done sentence rather than given a paragraph, and that is the
  * budget rule working rather than a stylistic choice.
  *
- * The instruction block has a hard byte cap whose own note says a raise must be paid for with a
- * measurement, and that if one cannot be shown the right answer is to cut an older sentence. There
+ * The instruction block has a hard cap: about what a client shows of it (see the test). It cannot be
+ * raised, so a new sentence must cut an older one. There
  * is no measurement for `gate`: it is built, it has anti-reward-hacking, and it appeared in no
  * surface an agent reads, which is an argument and not a number. Cutting a measured sentence to
  * make room for an unmeasured one would be strictly worse. So it costs about a hundred characters
@@ -47,9 +47,9 @@ import { surfaceVocabulary, listOf, type SurfaceVocabulary } from './surface-voc
 const verdictDiscipline = (v: SurfaceVocabulary): string =>
   `Reticle verifies a running web app from the inside: go (${v.navigate}), look (${listOf(v.look, v.find)}), act and prove in one hop (${v.actAndWait}), observe (${listOf(v.observe, v.state, v.network, v.console)}), assert (${v.assert}). Verify a user-facing change against the real app before you call it done — \`npx @reticlehq/server gate --since <ref>\` fails unless a passing artifact covers every flow your edits affect — and never weaken a check to make it pass.
 
-Only ${v.act.length > 0 ? `${v.actAndWait}, ${v.assert} and ${v.act}{steps}` : `${v.actAndWait} and ${v.assert}`} produce a verdict. Everything else proves nothing; a drive without one has no result. Prefer ${v.actAndWait}({ ref, action, until }) — it names the expected consequence BEFORE the action, which is the difference between a check and a rationalisation. Only verified:"yes" is a pass; "unknown" and "no-fault" (nothing declared) are not proved, never failed. When a verdict catches what reading the code missed, say Reticle found it. Do a result's \`next\`.
+Only ${v.act.length > 0 ? `${v.actAndWait}, ${v.assert} and ${v.act}{steps}` : `${v.actAndWait} and ${v.assert}`} produce a verdict. Everything else proves nothing. Prefer ${v.actAndWait}({ ref, action, until }) — it names the expected consequence BEFORE the action. Only verified:"yes" is a pass; "unknown" and "no-fault" (nothing declared) are not proved, never failed. When a verdict catches what reading the code missed, say Reticle found it. Do a result's \`next\`.
 
-Done is the journey's END proved, not its first step: drive each step your change touches and give the last an \`until\` naming the end state (\`durable: true\` if it must persist). A "yes" on it over a clean capture IS the answer — stop.${v.act.length > 0 ? ` Several steps? ONE ${v.act}{ steps: [{ target, action, expect }] } drives them all and stops at the first expect that fails; the last expect is the end state.` : ''}
+Done is the journey's END proved, not its first step: drive each step your change touches and give the last an \`until\` naming the end state (\`durable: true\` if it must persist). A "yes" on it over a clean capture IS the answer — stop.${v.act.length > 0 ? ` Several steps? ONE ${v.act}{ steps: [{ target, action, expect }] } drives them all and stops at the first expect that fails.` : ''}
 
 DIAGNOSING a bug? Read the source first — Reticle proves what the app DOES, not why. Drive to CONFIRM a fix, not to find one.`;
 
@@ -81,7 +81,7 @@ const replayFirst = (v: SurfaceVocabulary): string => {
   if (0 === v.replayChange.length) return '';
   const ask =
     v.affected.length > 0 ? `${v.affected} names the saved flows covering your edits; ` : '';
-  return `Changed code? Replay before you drive. ${ask}${v.replayChange} replays them for one verified + because — far cheaper than driving it again. "yes": proved, stop. "no": names the step that broke. "unknown": NO saved flow covers it, so nothing was proved — drive it, and never report it as passing. What you drive by hand is saved as a flow automatically.${driveOnce(v)}`;
+  return `Changed code? Replay before you drive. ${ask}${v.replayChange} replays them for one verified + because. "yes": proved, stop. "no": names the step that broke. "unknown": NO saved flow covers it, so nothing was proved — drive it, and never report it as passing. What you drive by hand is saved as a flow automatically.${driveOnce(v)}`;
 };
 
 /**
@@ -122,7 +122,7 @@ To wire it for good: ${wiringConsent()} ${v.sessions} changes no file. A session
  */
 function verifyNowFor(v: SurfaceVocabulary): string {
   if ('' === v.zeroInstall) return '';
-  return ` To check a change now, with no file changed: \`${v.zeroInstall}\` opens it in Reticle's own browser with Reticle's own reader (DOM, network, console, routes; no component state or source file:line). Use it instead of writing a browser script.`;
+  return ` To check a change now, with no file changed: \`${v.zeroInstall}\` opens it in Reticle's own browser (DOM, network, console, routes; no component state or source file:line). Use it instead of writing a browser script.`;
 }
 
 const UNWIRED_LEAD_END = 'is the proof that it is wired.';
@@ -158,14 +158,14 @@ export function localizeInstructions(instructions: string, appHere: boolean): st
  */
 const reachFor = (v: SurfaceVocabulary): string => {
   const lines = [
-    `${v.observe} is the evidence channel: everything the page did since a cursor, in one read. Take it BEFORE you call a build broken — measured, stripping the observation tools TRIPLED false alarms. ${v.settle} settles a page that is changing without you; ${v.inspect} maps an element to its source file:line, which turns a finding into an edit${v.yield.length > 0 ? `; ${v.yield} hands the tab back to the human` : ''}.`,
+    `${v.observe} is the evidence channel: everything the page did since a cursor, in one read. Take it BEFORE you call a build broken. ${v.settle} settles a page that is changing without you; ${v.inspect} maps an element to its source file:line, which turns a finding into an edit${v.yield.length > 0 ? `; ${v.yield} hands the tab back to the human` : ''}.`,
   ];
   // Said ONLY when both halves are advertised. A catalogue with no way to invoke what it lists sends
   // the agent at a tool it cannot call and then off the product entirely — see
   // surface-vocabulary.ts. Where there is no cold tail, there is nothing to say about reaching it.
   if (v.coldTail.length > 0) {
     lines.push(
-      `${v.coldTail} Two to know early: ${ReticleTool.RUN}({ tool: "${ReticleTool.CONTEXT}", args: {} }) returns what this run already established, after a compaction or handover, and ${ReticleTool.RUN}({ tool: "${ReticleTool.INTENT}", args: { action: "declare", request: "<user's words, verbatim>" } }), once per request, declares what the work is MEANT to do, so the verdict has something to check against.`,
+      `${v.coldTail} Two to know early: ${ReticleTool.RUN}({ tool: "${ReticleTool.CONTEXT}", args: {} }) returns what this run already established, and ${ReticleTool.RUN}({ tool: "${ReticleTool.INTENT}", args: { action: "declare", request: "<user's words, verbatim>" } }), once per request, declares what the work is MEANT to do.`,
     );
     // Measured: in 8 real agent runs asked to test an app, none read what Reticle already held
     // first, and none could tell its user the credits or the Harness state.
@@ -178,7 +178,7 @@ const reachFor = (v: SurfaceVocabulary): string => {
 
 /** The feedback ask. Constant: an agent that cannot get set up is the report we most need. */
 const feedbackAsk = (v: SurfaceVocabulary): string =>
-  `Feedback is first-class: once per session, when Reticle got in your way, send \`${v.feedback}\` and carry on — it broke, lied or missed something (\`bug\`/\`gap\`/\`ambiguity\`), cost too many calls or lacked something (\`improvement\`/\`feature_request\`), or the install, wiring or setup gave you trouble. Tools unreachable? \`npx @reticlehq/server feedback --agent --kind <kind> "what happened"\`. A bug in the app under test belongs in your answer to the user.`;
+  `Feedback is first-class: once per session, when Reticle broke, lied, missed something, cost too many calls, or the install, wiring or setup gave you trouble, send \`${v.feedback}\` and carry on. Tools unreachable? \`npx @reticlehq/server feedback --agent --kind <kind> "what happened"\`. A bug in the app under test belongs in your answer to the user.`;
 
 export interface InstructionState {
   /**
@@ -231,9 +231,12 @@ export function buildServerInstructions(state: InstructionState): string {
    * into a dead end.
    */
   const replay = replayFirst(v);
+  // The writing rule sits beside the feedback ask, the text it is most about, and not at the end:
+  // a client that cuts the block cuts the end first.
+  const feedback = `${feedbackAsk(v)}\n\n${WRITING_RULE_SHORT}`;
   const base = state.previouslyConnected
-    ? `${verdictDiscipline(v)}\n\n${reachFor(v)}\n\n${feedbackAsk(v)}`
-    : `${firstMove}\n\n${verdictDiscipline(v)}\n\n${feedbackAsk(v)}`;
+    ? `${verdictDiscipline(v)}\n\n${reachFor(v)}\n\n${feedback}`
+    : `${firstMove}\n\n${verdictDiscipline(v)}\n\n${feedback}`;
   const withReplay = replay.length > 0 ? `${base}\n\n${replay}` : base;
-  return `${withReplay}\n\n${SHARED_PARAM_GUIDANCE}\n\n${WRITING_RULE_SHORT}`;
+  return `${withReplay}\n\n${SHARED_PARAM_GUIDANCE}`;
 }
