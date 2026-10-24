@@ -367,3 +367,17 @@ describe('localizeInstructions', () => {
     expect(localizeInstructions(wired, true)).toBe(wired);
   });
 });
+
+/**
+ * The default MCP registration runs Reticle through npx and puts no `reticle` on PATH. The feedback
+ * fallback for "tools unreachable" said `reticle feedback`, which fails in exactly that case.
+ */
+describe('every command the briefing names runs under npx', () => {
+  it('in both states', () => {
+    for (const previouslyConnected of [true, false]) {
+      const text = buildServerInstructions({ previouslyConnected });
+      expect(text).not.toMatch(/`reticle [a-z]/);
+      expect(text).toContain('`npx @reticlehq/server feedback --agent');
+    }
+  });
+});

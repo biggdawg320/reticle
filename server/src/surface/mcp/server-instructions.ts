@@ -178,7 +178,7 @@ const reachFor = (v: SurfaceVocabulary): string => {
 
 /** The feedback ask. Constant: an agent that cannot get set up is the report we most need. */
 const feedbackAsk = (v: SurfaceVocabulary): string =>
-  `Feedback is first-class here: once per session, when Reticle got in your way, send \`${v.feedback}\` and carry on — it broke, lied or missed something (\`bug\` / \`gap\` / \`ambiguity\`), cost too many calls or lacked something (\`improvement\` / \`feature_request\`), or the install, the wiring, or the setup gave you trouble. Tools unreachable? \`reticle feedback --agent --kind <kind> "what happened"\`. A bug in the app under test belongs in your answer to the user.`;
+  `Feedback is first-class: once per session, when Reticle got in your way, send \`${v.feedback}\` and carry on — it broke, lied or missed something (\`bug\`/\`gap\`/\`ambiguity\`), cost too many calls or lacked something (\`improvement\`/\`feature_request\`), or the install, wiring or setup gave you trouble. Tools unreachable? \`npx @reticlehq/server feedback --agent --kind <kind> "what happened"\`. A bug in the app under test belongs in your answer to the user.`;
 
 export interface InstructionState {
   /**

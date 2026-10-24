@@ -322,8 +322,8 @@ describe('a wrong-shaped call is answered with a correct one', () => {
     expect(instructions).toContain('Feedback is first-class');
     expect(instructions).toContain(ReticleTool.FEEDBACK);
     // Including the phase before the tools work at all.
-    expect(instructions).toMatch(/install, the wiring, or the setup/);
-    expect(instructions).toContain('reticle feedback --agent --kind');
+    expect(instructions).toMatch(/install, wiring or setup/);
+    expect(instructions).toContain('server feedback --agent --kind');
     await close();
   });
 
