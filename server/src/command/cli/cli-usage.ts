@@ -37,7 +37,7 @@ interface CommandDoc {
 
 const INIT_DETAIL = `init wires the project, boots the app and proves a page connected. It ends with the
 instrumentation score, what is missing, and a prompt for your coding agent, which proves
-the first flow. It never drives: the Harness is opt-in and runs at any instrumentation.
+the first flow. It never drives: the Harness is opt-in and runs at any instrumentation score.
 
   --app <dir>        which app in a monorepo: writes its files only (add --start to boot it)
   --env KEY=VALUE    what the app needs to reach a usable state (repeatable)
@@ -143,7 +143,8 @@ const COMMANDS: readonly CommandDoc[] = [
     summary: 'Stop Reticle; --force frees its port even without a recorded pid',
     group: HelpGroup.MACHINE,
     detail:
-      'Without --force, stops the daemon Reticle started, by its recorded pid.\n' +
+      'Without --force, asks the daemon to stop (an authenticated request on loopback), and sends\n' +
+      'a signal to its recorded pid only if it does not accept.\n' +
       "With --force, frees the port by the Reticle daemon LISTENING on it, never the agent's MCP\n" +
       'proxy, and refuses a listener that is not Reticle.',
   },

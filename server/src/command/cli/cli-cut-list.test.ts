@@ -86,6 +86,17 @@ describe('reticle --help', () => {
     expect(renderHelp('all')).toBe(CLI_USAGE_ALL);
   });
 
+  // `stop` asks the daemon over loopback first and signals only when that fails; the page said it
+  // only signalled the pid.
+  it('stop says it asks the daemon before it sends a signal', () => {
+    expect(renderHelp('stop')).toContain('asks the daemon to stop');
+    expect(renderHelp('stop')).not.toContain('by its recorded pid.');
+  });
+
+  it('init names the score the Harness does not need', () => {
+    expect(renderHelp('init')).toContain('runs at any instrumentation score');
+  });
+
   it('an old name answers with the new page and says so', () => {
     const page = renderHelp('link', RENAMED_COMMANDS);
     expect(page).toContain('usage:  reticle connect');
