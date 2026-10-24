@@ -278,8 +278,8 @@ export function shouldRetryFirstConnect(error: unknown, elapsedMs: number): bool
 export function queueExpiryNextStep(port: number): string {
   return (
     `No Reticle daemon answered on port ${String(port)}. Retry the call — the next request starts ` +
-    'one. If it keeps failing, run `reticle doctor` in a terminal: it reports what is holding the ' +
-    'port and whether the daemon can start at all.'
+    'one. If it keeps failing, run `npx @reticlehq/server doctor` in a terminal: it reports what ' +
+    'is holding the port and whether the daemon can start at all.'
   );
 }
 

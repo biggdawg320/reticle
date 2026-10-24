@@ -406,3 +406,34 @@ describe('the writing rule is inside what a client shows', () => {
     }
   });
 });
+
+/**
+ * The degraded handshake put about 870 characters in front of the briefing. At about 4,600
+ * characters, the client cut it, so the writing rule never reached the agent.
+ */
+describe('the degraded handshake is inside what a client shows', () => {
+  // The longest reason the proxy gives: a foreign port holder, then a state directory problem.
+  const longReason =
+    'port 4400 is held by pid 65704 ("node"), which is not a Reticle daemon\n' +
+    'Reticle cannot write to its state directory at /Users/someone/.reticle. Everything it keeps — ' +
+    'the daemon log, the pid file, saved flows — lives there, so the daemon cannot start. Make it ' +
+    'writable (`chmod u+w`), or point Reticle elsewhere with HOME.';
+
+  it('in every state, under the client limit, with the writing rule', () => {
+    for (const previouslyConnected of [true, false]) {
+      for (const appHere of [true, false]) {
+        const healthy = buildServerInstructions({ previouslyConnected, appHere });
+        const degraded = degradedInstructions(healthy, 4400, longReason);
+        expect(degraded.length).toBeLessThan(CLIENT_SHOWN_CHARS);
+        expect(degraded).toContain(WRITING_RULE_SHORT);
+      }
+    }
+  });
+
+  it('names a doctor command that runs under npx', () => {
+    const healthy = buildServerInstructions({ previouslyConnected: false });
+    const degraded = degradedInstructions(healthy, 4400, longReason);
+    expect(degraded).toContain('`npx @reticlehq/server doctor`');
+    expect(degraded).not.toMatch(/`reticle [a-z]/);
+  });
+});
