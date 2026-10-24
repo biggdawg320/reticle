@@ -168,13 +168,14 @@ describe('findListenerCwd', () => {
       return args.includes('-sTCP:LISTEN') ? 'p4242\ncnode\n' : 'p4242\nfcwd\nn/wt/pr-7\n';
     };
 
-    expect(findListenerCwd(5174, exec)).toBe('/wt/pr-7');
+    // Pinned: on a Windows runner the default platform takes the PowerShell branch.
+    expect(findListenerCwd(5174, exec, 'darwin')).toBe('/wt/pr-7');
     expect(calls[0]).toContain('-sTCP:LISTEN');
     expect(calls[1]).toEqual(['lsof', '-a', '-p', '4242', '-d', 'cwd', '-Fn']);
   });
 
   it('is null when nothing listens, or lsof cannot run', () => {
-    expect(findListenerCwd(5174, () => null)).toBeNull();
+    expect(findListenerCwd(5174, () => null, 'darwin')).toBeNull();
   });
 
   it('on Windows, asks PowerShell for the listener and reads the project from its command line', () => {
