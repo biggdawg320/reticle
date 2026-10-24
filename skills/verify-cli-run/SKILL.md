@@ -82,7 +82,7 @@ Before running, check whether your expected consequence **already holds**. If it
 
 Keep the exit code. You are not going to use it as proof. You are going to use it to explain the verdict, and to notice when it disagrees with the filesystem.
 
-Two things worth knowing:
+Three things to know:
 
 - Exit codes wrap: `sh -c 'exit 256'` exits **0**. A large code is not always what you think.
 - `130` is a `SIGINT`, `137` is usually a kill. Those are facts about how the run _ended_, not about whether it worked.

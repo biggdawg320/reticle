@@ -52,6 +52,9 @@ Now change the implementation freely and re-run. Predicates are bound to behavio
 A journey worth writing test-first is a journey worth re-running forever. Save it once:
 
 ```
+reticle_run({ tool: "reticle_record", sessionId, args: { action: "start", name: "deploy" } })
+// drive the journey with reticle_act_and_wait, as in step 1
+reticle_run({ tool: "reticle_record", sessionId, args: { action: "stop", name: "deploy" } })
 reticle_run({ tool: "reticle_flow_save", sessionId, args: { flowName: "deploy" } })
 reticle_run({ tool: "reticle_verify", sessionId, args: { action: "flows" } })   // every saved flow, no model per flow
 ```

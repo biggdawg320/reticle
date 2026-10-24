@@ -44,8 +44,8 @@ reticle_look({ action: "state", sessionId, store })
 | `2xx` but nothing changed | the app never read the response: verdict says `outcome_unread` | usually a real bug in the success path |
 | Request fine, DOM fine, **store stale** | UI-vs-state desync, invisible to any screenshot | `reticle_look { action: "state" }` is the only witness; this is the highest-value read here |
 | Click did nothing, no error | the control is dead, occluded, or disabled | `reticle_look { action: "element" }` returns `occluded`, `box` (0×0), `styles.cursor`, `opacity` |
-| Element "not found" that you can see | virtualised list has not mounted it | `reticle_scroll_to`. A `query` that misses is not evidence of absence |
-| Looks logged in, behaves logged out | the token never persisted | `reticle_storage` |
+| Element "not found" that you can see | virtualised list has not mounted it | `reticle_run({ tool: "reticle_scroll_to", args: { by: "text", value } })`. A `find` that misses is not evidence of absence |
+| Looks logged in, behaves logged out | the token never persisted | `reticle_run({ tool: "reticle_storage", args: {} })` |
 | Console error that predates your click | a pre-existing fault, not your bug | call it out before continuing |
 
 ## Get the file, not a theory

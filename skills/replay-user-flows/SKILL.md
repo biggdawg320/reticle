@@ -26,7 +26,7 @@ reticle_act_and_wait({ sessionId, ref, action: "click", until: { kind: "signal",
 
 That step replays as a test. A bare `reticle_act` saves a click with nothing to prove, and replays green through any regression.
 
-To name a flow deliberately rather than take the automatic one, `reticle_record` and `reticle_flow_save` do it through `reticle_run { tool, args }`. Neither is advertised, and neither needs to be: `reticle_run` is on the default surface and dispatches to any registered tool by name. `RETICLE_ADVERTISE_ALL_TOOLS=1` advertises them outright instead, which suits a suite that calls by name rather than a running agent.
+To name a flow deliberately rather than take the automatic one, `reticle_record` and `reticle_flow_save` do it through `reticle_run { tool, args }`. Neither is advertised, and neither needs to be: `reticle_run` is on the default surface and dispatches to any registered tool by name. `RETICLE_ADVERTISE_ALL_TOOLS=1` advertises them outright, under older, unmerged tool names. Do not set it for an agent: the calls in this skill use the default names.
 
 Annotate the business outcome, not just the clicks, so a replay proves the journey _achieved_ something. Extended surface, like the two above:
 
@@ -62,7 +62,7 @@ reticle_verify({ sessionId, action: "flows" })
 // → { status, total, passed, failed, failures: [{ flow, verdict, whatChanged, whereInSource, nextAction }] }
 ```
 
-One call, every saved flow, no model per flow. Only failures carry detail, so a green suite is cheap to check. Build → `flow_verify` → fix from each `nextAction` → repeat is the regression loop, and it is the point of recording in the first place.
+One call, every saved flow, no model per flow. Only failures carry detail, so a green suite is cheap to check. Build → `reticle_verify { action: "flows" }` → fix from each `nextAction` → repeat is the regression loop, and it is the point of recording in the first place.
 
 ### Only the flows your change could have broken
 
@@ -72,7 +72,7 @@ On a large suite, replaying everything after a one-file edit is waste. Hand it t
 reticle_verify({ sessionId, action: "change", since: "HEAD~1" })
 ```
 
-It works out which saved flows cover the files you edited and replays only those. Give it a git ref or the file list. Use this in the inner loop and `flow_verify` before you ship: the narrow one is fast, the whole one is the guarantee.
+It works out which saved flows cover the files you edited and replays only those. Give it a git ref or the file list. Use this in the inner loop and `reticle_verify { action: "flows" }` before you ship: the narrow one is fast, the whole one is the guarantee.
 
 ### Which of your flows actually prove anything
 
