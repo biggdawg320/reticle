@@ -10,7 +10,7 @@ That gap is the difference between a gate and a decoration. A decoration still c
 
 ## How it works here
 
-`ci.yml` ends in a single job called **`gate`**. It waits on every other job in that file and passes only when each one either succeeded or was legitimately skipped. So one required check, `gate`, covers every other job in `ci.yml` except `fixtures-dispatch`, which notifies another repository and never runs on a pull request.
+`ci.yml` ends in a single job called **`gate`**. It waits on every other job in that file and passes only when each one either succeeded or was legitimately skipped. So one required check, `gate`, covers every other job in `ci.yml` except two. `fixtures-dispatch` notifies another repository and never runs on a pull request. `nightly-watch` runs only on the nightly and on a manual run on `main`. It waits on `gate`, so `gate` cannot wait on it.
 
 That trick only reaches so far. A job can only wait on jobs in **its own workflow file**, so the other workflows below cannot be folded into `gate`. Each has to be named in branch protection separately, or it blocks nothing.
 

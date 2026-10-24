@@ -9,8 +9,6 @@ The apps in `apps/` cannot tell you whether the install still works, because eve
 
 The apps in `apps/` are ours. We chose their defects, so passing against them says less than it looks like, and they are all wired to Reticle already, which makes them useless for the one question that matters before a release: **does the install still work on an app that has never seen Reticle?**
 
-That question is answered in a separate repo: **`reticle-fixtures`**.
-
 ## Why it is a separate repo
 
 Three reasons, each of which bit us before the split:
@@ -36,7 +34,7 @@ The split is: **`apps/` proves the tools work. `reticle-fixtures` proves the ins
 
 ## Wiring Tier 2 (not yet live)
 
-CI can ask this repo to verify a Reticle commit automatically, in the [`vite-ecosystem-ci`](https://github.com/vitejs/vite-ecosystem-ci) shape, where a separate repo holds the downstream apps and the main repo asks it to run. The sending half is built (`fixtures-dispatch` in `.github/workflows/ci.yml`); the receiving half is a template at [`docs/fixtures-dispatch-receiver.yml`](./fixtures-dispatch-receiver.yml).
+CI can ask this repo to verify a Reticle commit automatically, in the [`vite-ecosystem-ci`](https://github.com/vitejs/vite-ecosystem-ci) shape, where a separate repo holds the downstream apps and the main repo asks it to run. The sending half is built (`fixtures-dispatch` in `.github/workflows/ci.yml`); the receiving half is a template at [`docs/fixtures-dispatch-receiver.yml`](https://github.com/reticlehq/reticle/blob/main/docs/fixtures-dispatch-receiver.yml).
 
 **It is inert until two things happen, and neither can be done from inside this repository:**
 
