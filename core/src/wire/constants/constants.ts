@@ -280,6 +280,15 @@ export const INSPECT_IN_VIEWPORT_FIELD = 'inViewport';
 /** Schema version stamped onto compiled replay programs. */
 export const REPLAY_PROGRAM_VERSION = 1;
 
+/**
+ * The instruction files `reticle init` writes its Reticle section into, and the line that opens the
+ * section. `init` writes it and the server reads it, so both take it from here.
+ */
+export const AgentRules = {
+  FILES: ['CLAUDE.md', 'AGENTS.md'],
+  BEGIN: '<!-- reticle:begin (managed by `reticle init` — edit outside these markers) -->',
+} as const;
+
 /** The git-checked Reticle workspace directory + its layout. No free strings. */
 export const ReticleDir = {
   ROOT: '.reticle',

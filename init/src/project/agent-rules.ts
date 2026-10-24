@@ -21,6 +21,7 @@
 import { NPX } from '@/register/mcp.js';
 import { RETICLE_NPM_PACKAGE } from '@/version.js';
 import {
+  AgentRules,
   DISCOVERY_CALL_URL,
   DISCOVERY_EMAIL_COMMAND,
   FEEDBACK_KIND_CHOICES,
@@ -47,8 +48,7 @@ export const RETICLE_MD_PATH = 'RETICLE.md';
 export const CURSOR_RULE_PATH = '.cursor/rules/reticle.mdc';
 
 /** Markers delimiting the managed block so a re-run is idempotent and the block stays updatable. */
-const RULE_BEGIN =
-  '<!-- reticle:begin (managed by `reticle init` — edit outside these markers) -->';
+const RULE_BEGIN = AgentRules.BEGIN;
 const RULE_END = '<!-- reticle:end -->';
 
 /**
