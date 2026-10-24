@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/reticlehq/reticle/main/install/inst
 irm https://raw.githubusercontent.com/reticlehq/reticle/main/install/install.ps1 | iex   # Windows
 ```
 
-It puts the CLI on the machine and registers the MCP server with the coding agents it finds. Then do what it prints: restart your coding agent so it loads Reticle's tools, and paste the prompt the script prints into it. The agent runs `reticle init` in your app (build plugin, SDK connect file, agent rules), then proves one flow. No agent? Run `reticle init` in the app yourself.
+It puts the CLI on the machine and registers the MCP server with the coding agents it finds. Then do what it prints: restart your coding agent so it loads Reticle's tools, and paste the prompt the script prints into it. To teach the agent the workflow, also add the skill: `npx skills add reticlehq/reticle --skill reticle`. The agent runs `reticle init` in your app (build plugin, SDK connect file, agent rules), then proves one flow. No agent? Run `reticle init` in the app yourself.
 
 ### B. A platform / CI, driven from your pipeline (no MCP, no human)
 
@@ -56,7 +56,7 @@ const { run } = await (
 if (run.verdict.status !== 'pass') {
   for (const p of run.repair?.failurePackets ?? []) fixerAgent.send(p.suggestedPrompt); // self-heal
   blockDeploy(run);
-} else attachToDeploy(run); // "verified ✓"; set profile:"prod-preview" to redact internals downstream
+} else attachToDeploy(run); // "verified ✓". POST /verify redacts internals by default (profile "prod-preview"); pass profile:"dev" for the full run.
 ```
 
 Or skip the HTTP server entirely with the one-shot CLI: `reticle verify <preview-url>` drives the preview, replays the saved flows, prints the verdict, and exits non-zero on fail (ideal for a CI step).
@@ -140,7 +140,7 @@ The shape is identical (in-app SDK in the template → verify in the sandbox →
 
 ## The verdict artifact
 
-`POST /verify` (and `reticle_run_export`) return a stable, versioned `ReticleVerificationRun` (defined in `@reticlehq/core`): `verdict` (pass/fail/partial, confidence, blockingRisks), `flows[]`, `checks[]`, `risks[]` (auth/payment/db/…), `repair.failurePackets[]` (what + where to fix), `evidence`. Render a legible report with `renderRunReport()` or `reticle_run_export { format: "report" }`. Profiles: `dev` (full) vs `prod-preview` (source + state redacted for downstream sharing).
+`POST /verify` (and `reticle_run_export`) return a stable, versioned `ReticleVerificationRun` (defined in `@reticlehq/core`): `verdict` (pass/fail/partial, confidence, blockingRisks), `flows[]`, `checks[]`, `risks[]` (auth/payment/db/…), `repair.failurePackets[]` (what + where to fix), `evidence`. Render a legible report with `renderRunReport()` or `reticle_run({ tool: "reticle_run_export", args: { format: "report" } })`. Profiles: `dev` (full) and `prod-preview` (source and state redacted for sharing). `POST /verify` uses `prod-preview` unless you pass `profile: "dev"`.
 
 **Why trust it:** the verdict is mechanical, derived only from observed outcomes, so it can't report green for something it never ran (a severed backend reads as _fail_, never a confident pass). Proof: `server/src/judgement/runs/false-green.test.ts`.
 
