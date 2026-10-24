@@ -9,6 +9,7 @@
  * not: `npx reticle` resolves the PACKAGE named `reticle`, which belongs to somebody else, and npx
  * will happily fetch and run it. So the npx spelling leads every page.
  */
+import { FEEDBACK_KIND_CHOICES } from '@reticlehq/core';
 
 export const HelpGroup = {
   START: 'Get started',
@@ -170,7 +171,7 @@ const COMMANDS: readonly CommandDoc[] = [
     summary: "Tell us what worked and what didn't; prints exactly what it sends",
     group: HelpGroup.ACCOUNT,
     detail:
-      'Agents: reticle feedback --agent --kind <bug|gap|ambiguity|feature_request|improvement|experience> "message"\n' +
+      `Agents: reticle feedback --agent --kind ${FEEDBACK_KIND_CHOICES} "message"\n` +
       'works from anywhere, including a setup that never finished.\n' +
       '--contact <email> adds an address for a reply. It is sent only when you give it.',
   },

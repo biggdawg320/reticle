@@ -67,6 +67,9 @@ export const FeedbackKind = {
 } as const;
 export type FeedbackKind = (typeof FeedbackKind)[keyof typeof FeedbackKind];
 
+/** Every feedback kind as one `<a|b>` choice for help text. Derived, so no kind is left out. */
+export const FEEDBACK_KIND_CHOICES = `<${Object.values(FeedbackKind).join('|')}>`;
+
 /** Which shell the verified app runs in. Mirrors the SDK's own `PAGE_HEALTH` runtime report. */
 export const AppRuntime = {
   WEB: 'web',

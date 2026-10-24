@@ -67,11 +67,6 @@
       "count": 10
     }
   },
-  "src/diagnose/closing-hint.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
   "src/diagnose/containerised-dev-server.ts": {
     "curly": {
       "count": 1
