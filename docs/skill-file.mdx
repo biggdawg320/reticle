@@ -24,8 +24,9 @@ The `docs/` folder beside it is a copy of this site.
 
 It is the critical path and nothing else. Read [SKILL.md](https://github.com/reticlehq/reticle/blob/main/SKILL.md) itself to get the rules exactly right; in short:
 
-- **First move:** if the `reticle_*` tools are visible, call `reticle_session { action: "list" }`. If they are not, hand the user the installer line and stop.
-- **Setup is `init`, then the first run.** `init` wires the app and waits for a session. It never drives. A dev server that was already running must be restarted once.
+- **Three steps, in order:** install once per machine, wire the app once per project, then prove one flow.
+- **Install:** if the `reticle_*` tools are not visible, hand the user the installer line and stop.
+- **Wire only with consent.** `reticle_session { action: "list" }` changes no file. On an unwired project it asks before `init`. When an app is running, it also names the zero-install lease, which checks the app with nothing installed. `init` changes files, so run it only when the user agrees. A request to set up Reticle is that agreement. A dev server that was already running must be restarted once.
 - **Done means a verdict.** A session listed means the SDK reached the page. Setup is finished when the first run returns a verdict.
 - **Only `verified: "yes"` is a pass.** `unknown` means Reticle could not tell. Never weaken a check to make it pass.
 - **Replay before you drive.** `reticle_verify { action: "change" }` or `{ action: "flows" }` re-verifies saved journeys in one call.

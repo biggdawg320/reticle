@@ -21,22 +21,22 @@ This page is the complete description of what is collected. If something is not 
 
 ## What is sent
 
-Twenty-two kinds of events, each a single small JSON object. This is the whole list, and it is the same list the code enumerates:
+Twenty-five kinds of events, each a single small JSON object. This is the whole list, and it is the same list the code enumerates:
 
 | Event | When | Extra data |
 | --- | --- | --- |
-| `reticle_installed` | The first real command Reticle runs on a machine. `--version`, `--help` and `telemetry` do not count | n/a |
+| `reticle_installed` | The first real command Reticle runs on a machine. `--version`, `--help` and `telemetry` do not count | Which published install route you came through, declared by that route with `RETICLE_INSTALL_SOURCE` and never inferred, and `unknown` when nothing declared one |
 | `cli_command_run` | You run a `reticle` command | Which subcommand (`verify`, `status`, …) and which flags were present, by name |
 | `daemon_started` | The local daemon starts | n/a |
 | `daemon_stopped` | The local daemon stops | A summary of the session; see below |
 | `session_progress` | Periodically, from a daemon that is still running | The same summary as `daemon_stopped`, marked `final: false`. It exists so a long session is not invisible until it exits |
-| `app_instrumented` | The first time your app's SDK connects in a given daemon run | Nothing beyond the common fields. It is the second half of the install funnel: registering the MCP server is one thing, getting the SDK into a running page is another |
+| `app_instrumented` | The first time your app's SDK connects in a given daemon run | Whether `reticle init` ran in this folder, whether an agent was already attached, how long the daemon ran before the app connected, and whether this is the first app ever on this machine and project. It is the second half of the install funnel: registering the MCP server is one thing, getting the SDK into a running page is another |
 | `verification_completed` | A verification produces a verdict | Whether it passed, whether Reticle refused to call a passing check verified, **why** the verdict came out that way, and the version of the Reticle SDK in the page; see below |
 | `project_profiled` | Once per daemon start | The shape of the project; see below |
 | `version_changed` | Reticle starts on a version that differs from the last start on this machine, or you update or roll back | The two version numbers, which direction, and whether an agent had been told about the new version |
 | `runtime_crashed` | The daemon hits an uncaught error | The error's type, **Reticle's own** stack frames, and the message with variables stripped; see below |
-| `mcp_client_connected` | An agent attaches to the daemon | Whether it is a reconnect, how long the daemon had been idle, and the random id of the process that gives the agent its tools |
-| `mcp_connection_lost` | The agent's MCP tools go away | Which stage (`first`, or `budget_spent` when it stopped retrying), the cause, the attempt count, and the random id of the process that gives the agent its tools. **At most twice per session**, because a reconnect loop can fire many times in a row and an event each would bill for the pathology instead of measuring it |
+| `mcp_client_connected` | An agent's MCP server attaches to the daemon. A proxy that reconnects does not send it again | Whether this daemon had an agent before, how long the daemon had been up, the client's name from its handshake, whether an app was already connected, and the random id of the process that gives the agent its tools |
+| `mcp_connection_lost` | The agent's MCP tools go away, or come back | Which stage (`first`, `recovered` when the link came back on its own, or `budget_spent` when it stopped retrying), the cause from a closed list, the socket error code from a closed list, the attempt count, how many tool calls in flight the drop killed, and the random id of the process that gives the agent its tools. **Each stage is sent at most once per proxy process** (once for a planned daemon exit and once for a fault), because a reconnect loop can fire many times in a row and an event each would bill for the pathology instead of measuring it. The planned idle exit of the daemon sends no `first` row |
 | `mcp_proxy_exited` | The process that gives your agent its Reticle tools ends | Why it ended (`stdin_end`, `idle`, `client_gone_storm`, `wake_failed`), how long it ran, and two counts: how many times it lost the daemon and how many tool calls it carried, with its random id. Never what the calls were |
 | `daemon_died_unclean` | Reticle finds that an earlier daemon stopped without a clean exit | How long that daemon had run. Nothing else |
 | `wake_refused` | Reticle will not use the daemon port it found, because something else holds it | Whether the holder was another program (`foreign`) or a Reticle daemon for another project (`other_project`). Never the port or the project |
@@ -45,10 +45,10 @@ Twenty-two kinds of events, each a single small JSON object. This is the whole l
 | `bug_found` | Reticle finds a defect in the app under test | The **kind** of defect (`signal-contradicted`, `console-error`, …) and how it was found, never what it was found in |
 | `tool_refused` | A tool cannot do what an agent asked | Which tool, why (one of six buckets: no session, no match, unsupported, bad arguments, not ready, other), and whether the same call was retried. **Never the message**, because a refusal interpolates whatever you asked for, so only the tool name and the bucket are sent. Capped at 50 per daemon run |
 | `feedback_submitted` | **Only** when you or your agent explicitly send feedback | The report; see [Feedback](#feedback). The AGENT's call does not wait for the network: the receipt says `accepted` (validated, redacted, queued), never `sent`, and a delivery that then fails is reported back on the agent's next tool result. `reticle feedback` typed by a human still waits, because a person at a terminal is owed the real answer |
-| `hud_viewed` | You open a page of the in-page HUD (Agent Log, Flows, Notes, Harness, Impact, Settings) or its account menu | Which page, from a closed list, and how many tabs had a HUD (a bucket: `1`, `2-3`, and so on). The same page reopened in the same tab within 30 seconds counts once |
-| `hud_signin_prompted` | The HUD shows you a sign-in or "link this project" prompt | Which prompt (`rail`, `harness` or `header`), once per prompt per tab |
+| `hud_viewed` | You open a page of the in-page HUD (Agent Log, Flows, Notes, Harness, Impact, Settings) or its account menu | Which page, from a closed list, and how many tabs had a HUD (a bucket: `1`, `2-3`, and so on). The same page opened again within 30 seconds counts once for the whole daemon run, also after a reload. The Agent Log that the HUD opens by itself when a page loads is not a view |
+| `hud_signin_prompted` | The HUD shows you a sign-in or "link this project" prompt | Which prompt (`rail`, `harness` or `header`), once per prompt for each daemon run |
 | `platform_linked` | A project on this machine is linked to a Reticle workspace | How (`connect`, `hud` or `link`) and the workspace's id; see [The platform side](#the-platform-side) |
-| `harness_run` | A Reticle Harness run starts, and again when it ends | Who started it (`agent`, `hud`, `dashboard`, `cli_try`, `plan`), whether the platform drove it, and at the end how it went (`proved`, `not_proved`, `failed`, `blocked`, `stopped`) and how many journeys it answered and replayed, as buckets |
+| `harness_run` | A Reticle Harness run starts, and again when it ends | Who started it (`agent`, `hud`, `dashboard`, `cli_try`, `plan`), whether the platform drove it, and at the end how it went (`proved`, `not_proved`, `failed`, `blocked`, `stopped`), how many journeys it answered and replayed, as buckets, and for a `blocked` or `failed` run why it did not drive, from a closed list (`not_linked`, `harness_off`, `no_credits`, and so on) |
 | `identified` | **Never** from this version. Only an earlier version's `reticle identify`, which has been removed | What you chose to tell us then; see [Telling us who you are](#telling-us-who-you-are) |
 
 **There is no per-tool-call event.** Tool usage is counted in memory and leaves once, inside `daemon_stopped`, as a histogram like `{"reticle_act": 40, "reticle_assert": 12}`. That is counts of tool NAMES from a fixed list we define, never arguments, results, selectors, or URLs.
@@ -142,7 +142,7 @@ Reticle verifies apps for AI agents, and for a long time it had no way to hear w
 
 | Who | How | What it carries |
 | --- | --- | --- |
-| Your agent | Calls the `reticle_session { action: "feedback" }` MCP tool (after a failure, **or to ask for a feature**) | What it wrote: an analysis, or a request with the goal behind it, what would improve, and how it works around the gap today. Plus the model it is running, which it tells us because MCP cannot |
+| Your agent | Calls the `reticle_session { action: "feedback" }` MCP tool (after a failure, **or to ask for a feature**) | What it wrote: an analysis, or a request with the goal behind it, what would improve, and how it works around the gap today. Plus the model it is running, which it tells us because MCP cannot. If it gives a call trail, only the Reticle tool names and verdict words in it are kept. Everything else in the trail is removed before it is sent |
 | You | Run `npx @reticlehq/server feedback [--rating 1-5] [--bug] [--contact you@example.com] "your words"` | Your words and your rating, and your reply address if you give one |
 | Your agent, before Reticle works | Runs `npx @reticlehq/server feedback --agent --kind <bug\|gap\|ambiguity\|feature_request\|improvement\|experience> "what happened"` | The same words, filed from the shell. This exists for the phase where there is no daemon and no MCP tools (a failed `init`, half-finished wiring), which is the failure we are otherwise never told about |
 
@@ -162,7 +162,7 @@ Alongside the report, a feedback event carries context about the environment it 
 | `runtime` | `web`, `electron`, `tauri` | Desktop bugs look nothing like browser bugs |
 | `engine` | `blink`, `gecko`, `webkit` | Coarse bucket, never the user-agent string |
 | `driver` | `cdp`, `sdk` | Whether Reticle drove the page or observed your own browser |
-| `client` | `claude-code`, `cursor` | The MCP client's own name from its handshake |
+| `client` / `clientVersion` | `claude-code` / `1.0.0` | The MCP client's own name and version from its handshake |
 | `mcpScope` | `user`, `project` | How Reticle is registered |
 | `kind` | `bug`, `gap`, `ambiguity`, `feature_request`, `improvement`, `experience` | A defect, a blind spot, an undecidable verdict, a thing that does not exist, a thing that exists but is awkward, or a human's overall take |
 
@@ -178,9 +178,9 @@ Every switch in [Your choices](#your-choices) disables feedback too. If telemetr
 
 ## Telling us who you are
 
-Nothing above names you, and no command adds your name: `reticle identify`, which used to, has been removed, and this version never sends an `identified` event. If you want support, an enterprise licence, or to be a design partner, email support@reticlehq.com.
+Nothing above names you, and no command adds your name: `reticle identify`, which used to, has been removed, and this version never sends an `identified` event. If you want support, an enterprise licence, or to be a design partner, email hey@reticle.sh.
 
-An identity sent by an earlier version with `reticle identify` stays linked to that machine's anonymous id until you ask for it to be removed: email support@reticlehq.com.
+An identity sent by an earlier version with `reticle identify` stays linked to that machine's anonymous id until you ask for it to be removed: email hey@reticle.sh.
 
 ## Where it goes
 
