@@ -71,6 +71,14 @@ describe('buildServerInstructions', () => {
       expect(text).not.toMatch(/no other tool can tell you anything/);
     });
 
+    // Given only `url: "<the running app's URL>"`, a real agent in an unwired project started a
+    // second dev server on a port it chose, and leased that one. The user's own server was running.
+    it('sends the agent to the running dev server, not to a second one', () => {
+      expect(text).not.toContain("<the running app's URL>");
+      expect(text).toMatch(/next_step\.lease/);
+      expect(text).toMatch(/Do not start a second dev server/);
+    });
+
     it('wires the app only when the user agrees, and says the session call changes no file', () => {
       expect(text).toMatch(
         /Ask the user before you wire the app\. If they agree, run `npx @reticlehq\/server init`/,

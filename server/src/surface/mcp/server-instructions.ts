@@ -120,9 +120,15 @@ To wire it for good: ${wiringConsent()} ${v.sessions} changes no file. A session
  * Reticle's own reader. Measured with `claude -p` on a fresh Vite app with the MCP registered and no
  * `init`: the agent made no Reticle call and wrote, ran and deleted a Playwright script instead.
  */
+// A real agent given no URL source started a second dev server beside the user's own.
+const urlFrom = (v: SurfaceVocabulary): string =>
+  '' === v.sessions
+    ? ''
+    : ` Get <URL> from next_step.lease in ${v.sessions}. Do not start a second dev server.`;
+
 function verifyNowFor(v: SurfaceVocabulary): string {
   if ('' === v.zeroInstall) return '';
-  return ` To check a change now, with no file changed: \`${v.zeroInstall}\` opens it in Reticle's own browser (DOM, network, console, routes; no component state or source file:line). Use it instead of writing a browser script.`;
+  return ` To check a change now, with no file changed: \`${v.zeroInstall}\` opens it in Reticle's own browser. Use it instead of writing a browser script.${urlFrom(v)}`;
 }
 
 const UNWIRED_LEAD_END = 'is the proof that it is wired.';
