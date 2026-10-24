@@ -54,8 +54,9 @@ The daemon then does three things:
 
 1. It mints a single-use session nonce for the site's origin. The nonce expires after 60 minutes.
 2. It asks the service for a ticket with the linked API key: `{ workspaceId, nonce, bridgePort, scope, origin, bridge }`. `origin` is the site's origin and `bridge` is the bridge the page dials (`ws://127.0.0.1:<port>/reticle`). The service signs the ticket for exactly those two values. It also decides who may activate.
+3. It opens `https://app.example.com/?reticle_activate=<ticket>` in a leased browser.
 
-A host that embeds the engine and runs its own bridge passes its cloud link as `ToolDeps.linkedCloud` and its bridge as `bridgePort` and `nonces`. It needs no `cloud.json`. Such a host must not inject the SDK into a production lease's browser context. An injected copy connects first, as a development session, and the loader's `connect` then does nothing. 3. It opens `https://app.example.com/?reticle_activate=<ticket>` in a leased browser.
+A host that embeds the engine and runs its own bridge passes its cloud link as `ToolDeps.linkedCloud`, and its bridge as `bridgePort` and `nonces`. It needs no `cloud.json`. Such a host must not inject the SDK into a production lease's browser context. An injected copy connects first, as a development session, and the loader's `connect` then does nothing.
 
 If no page connects, the lease answers `ready: false`. The usual cause is a signed-out browser: the service refused the ticket, and the page loaded without an activation. Release the lease, then acquire again with your session cookies in `seedStorage`.
 
@@ -84,6 +85,8 @@ The daemon recognises an action in two ways:
 - **The request.** Its method and path, from a policy list. The service can send its own list with the ticket. Without one, the daemon uses `DEFAULT_PRODUCTION_POLICY` from `@reticlehq/core`.
 
 In a leased browser, each request the page sends passes the policy before it leaves the browser. A refused request gets a 403 and never reaches the site.
+
+A key press on a production drive runs in the page, never on the native keyboard. A native key goes to the control that has focus, so the policy could not see it. The policy judges a key press by the control it names. A key press that names no control is judged only by the requests it sends.
 
 These are always allowed:
 

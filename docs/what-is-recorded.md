@@ -9,7 +9,7 @@ If you read one line: **a verdict is entirely local and needs no account.** Noth
 
 ## On your machine
 
-Everything lands in `.reticle/` in your project, and it is yours. Three kinds of thing:
+In a wired project, everything lands in `.reticle/` in your project, and it is yours. Reticle writes nothing into a project that you did not wire. A run that matches no project goes to `~/.reticle/unmatched/`. Three kinds of thing:
 
 |  | what it is | what is in it |
 | --- | --- | --- |
