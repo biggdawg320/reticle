@@ -17,25 +17,15 @@ import { readProjectId } from '@/command/cli/ports/resolve/cli-port.js';
 import { callingClientDirectory } from '@/hooks/client-directory.js';
 import { initCommandIn } from '@/portal/session/dev-server/dev-command.js';
 import {
-  INIT_COMMAND,
+  wiringConsent,
   zeroInstallLease,
   type NoSessionNextAction,
 } from '@/portal/session/no-session-next-action.js';
 import { noteNextStepOffered } from '@/telemetry/onboarding-firsts.js';
-import type { ToolDeps } from './tool-kit.js';
 
-/**
- * The consent question for wiring, in one wording for every place that offers `init`: the
- * handshake, the first session call and the plugin hook. `init` changes the user's files, so the
- * agent asks first. The lease changes nothing, so it needs no question.
- */
-export function wiringConsent(init: string = INIT_COMMAND): string {
-  return (
-    '`init` changes files: it adds a dev-only SDK to package.json and the lockfile, edits the ' +
-    'build config and starts the dev server. Ask the user before you wire the app. If they ' +
-    `agree, run \`${init}\` in the app's folder. If they decline, do not ask again.`
-  );
-}
+// The handshake reads the consent wording from here, so `mcp` needs no reach into `session`.
+export { wiringConsent };
+import type { ToolDeps } from './tool-kit.js';
 
 /** The answers that mean "this app is not set up yet". */
 const FIRST_RUN_ACTIONS: ReadonlySet<string> = new Set([

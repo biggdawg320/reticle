@@ -7,7 +7,7 @@
  * start of the session. The first step is the lease: it checks the running app now and changes no
  * file. `init` keeps Reticle wired, and it changes the user's files, so the agent runs it only when
  * the user agrees. The consent sentences are the same as the MCP instructions
- * (`wiringConsent` in server/src/surface/tools/empty-session-list.ts).
+ * (`wiringConsent` in server/src/portal/session/no-session-next-action.ts).
  *
  * Never fails the session: any error, or any doubt about the project, prints nothing and exits 0.
  */

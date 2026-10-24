@@ -22,6 +22,7 @@ import { callingClientDirectory } from '@/hooks/client-directory.js';
 import { detectDevCommandInProject, initCommandIn } from './dev-server/dev-command.js';
 import { probeDevServerStates } from './dev-server/dev-server-probe.js';
 import { firstRunWiring, type FirstRunWiring } from './first-run-wiring.js';
+import { wiringConsent } from './no-session-next-action.js';
 import { servingDirectoryOf } from './serving-directory.js';
 
 const LOCALHOST = 'http://localhost';
@@ -66,8 +67,8 @@ function openedNotice(url: string, init: string): string {
   return (
     `This app is not wired for Reticle, so Reticle opened ${url} in its own browser and supplied ` +
     'the SDK (zero-install: DOM, network, console and routes; no component state and no source ' +
-    `file:line). To wire it for good, run \`${init}\`, then ` +
-    'restart the dev server and reload the page.'
+    `file:line). To wire it for good: ${wiringConsent(init)} Then restart the dev server and ` +
+    'reload the page.'
   );
 }
 

@@ -160,6 +160,19 @@ function reopenableUrl(raw: string | undefined): { url: string; port: number } |
  */
 const CLI = 'npx @reticlehq/server';
 export const INIT_COMMAND = `${CLI} init`;
+/**
+ * The consent question for wiring, in one wording for every place that offers `init`: the
+ * handshake, the first session call, every next action and the plugin hook. `init` changes the user's files, so the
+ * agent asks first. The lease changes nothing, so it needs no question.
+ */
+export function wiringConsent(init: string = INIT_COMMAND): string {
+  return (
+    '`init` changes files: it adds a dev-only SDK to package.json and the lockfile, edits the ' +
+    'build config and starts the dev server. Ask the user before you wire the app. If they ' +
+    `agree, run \`${init}\` in the app's folder. If they decline, do not ask again.`
+  );
+}
+
 const OPEN_COMMAND = `${CLI} open`;
 const LOCALHOST = 'http://localhost';
 
@@ -407,7 +420,7 @@ export function nextActionFor(facts: NextActionFacts): NoSessionNextAction {
         (neverWired(facts)
           ? ` Once it is up, ${zeroInstallLease(dev.port === undefined ? undefined : `${LOCALHOST}:${String(dev.port)}`)} ` +
             `gets a verdict with nothing installed (${ZERO_INSTALL_SEES}); ` +
-            `\`${facts.init ?? INIT_COMMAND}\` wires it for good — then restart the dev server and reload.`
+            `To wire it for good: ${wiringConsent(facts.init ?? INIT_COMMAND)} Then restart the dev server and reload.`
           : ''),
     };
   }
@@ -426,9 +439,9 @@ export function nextActionFor(facts: NextActionFacts): NoSessionNextAction {
         `something is listening (${ports}) but no \`.reticle.json\` was found, so the app may ` +
         'carry no Reticle SDK. For a verdict NOW with nothing installed: ' +
         `${zeroInstallLease(target === undefined ? undefined : `${LOCALHOST}:${String(target)}`)} — ` +
-        `${ZERO_INSTALL_SEES}. To wire it for good, run this command yourself (it runs in the ` +
-        "APP's own folder, not where this daemon stands), then restart the dev server and reload " +
-        'the page.',
+        `${ZERO_INSTALL_SEES}. To wire it for good: ${wiringConsent(facts.init ?? INIT_COMMAND)} ` +
+        "The app's folder is not always where this daemon stands. Then restart the dev server and " +
+        'reload the page.',
     };
   }
 
@@ -471,7 +484,8 @@ export function nextActionFor(facts: NextActionFacts): NoSessionNextAction {
 /** The same action as one sentence, for the prose message the human reads. */
 export function renderNextAction(next: NoSessionNextAction): string {
   const command = next.command;
-  return command === undefined
+  // `init` changes the user's files, so its line repeats the consent in the reason, not an order.
+  return command === undefined || NoSessionAction.RUN_INIT === next.action
     ? `NEXT ACTION: ${next.reason}`
     : `NEXT ACTION: run \`${command}\` — ${next.reason}`;
 }
