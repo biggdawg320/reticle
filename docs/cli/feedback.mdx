@@ -35,6 +35,8 @@ redacted     email (removed before sending)
 thanks       your feedback is in. it genuinely changes what gets built next.
 ```
 
+With `--contact`, one more line names the address, after the `sending` line: `contact      you@example.com (sent so that the maintainers can answer you)`.
+
 `not sent` replaces the last line when the send failed or telemetry is off, and names the reason. Nothing is lost either way: a failed send is kept on disk and retried, and with telemetry off the report is written to disk instead.
 
 Run with no message and no rating, it prints usage and exits `1`. Real capture:
