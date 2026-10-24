@@ -12,7 +12,7 @@ metadata:
 
 Updating the UI before the server answers makes an app feel fast. It also means the UI claims something the server has not agreed to yet. The failure path, where the request fails and the UI has to take the claim back, is the one nobody clicks through, because on a working backend it never happens.
 
-**Reticle** can make it happen in the running app. Not installed? `RETICLE_INSTALL_SOURCE=npx_skill npx @reticlehq/server@latest init`, then the [`install-and-verify`](https://github.com/reticlehq/reticle/blob/main/skills/install-and-verify/SKILL.md) skill.
+**Reticle** can make it happen in the running app. Not set up? Follow the [`reticle`](https://github.com/reticlehq/reticle/blob/main/skills/reticle/SKILL.md) skill: it installs Reticle, asks the user before `init` changes the app's files, and proves one flow.
 
 ## Read this before you start: failing a request needs a browser Reticle owns
 

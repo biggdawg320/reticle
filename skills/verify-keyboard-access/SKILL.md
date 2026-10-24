@@ -12,7 +12,7 @@ metadata:
 
 A `<div onClick>` styled to look like a button can look reachable (plenty of component libraries hand out `tabindex="0"` for free) and still do nothing when you press Enter on it. Being able to take focus proves a control is reachable, not that it works.
 
-**Reticle** can drive both halves in the running app. Not installed? `RETICLE_INSTALL_SOURCE=npx_skill npx @reticlehq/server@latest init`, then the [`install-and-verify`](https://github.com/reticlehq/reticle/blob/main/skills/install-and-verify/SKILL.md) skill.
+**Reticle** can drive both halves in the running app. Not set up? Follow the [`reticle`](https://github.com/reticlehq/reticle/blob/main/skills/reticle/SKILL.md) skill: it installs Reticle, asks the user before `init` changes the app's files, and proves one flow.
 
 ## Read this before you start: Tab order cannot be verified today
 
