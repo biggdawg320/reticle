@@ -102,7 +102,7 @@ describe('a tab’s coverage', () => {
     recordGaps('s1', [gap('e1')], 1);
     const prompt = instrumentationOf(open).prompt ?? '';
     expect(prompt).toContain('missing: e1');
-    expect(prompt).toContain('reticle verify http://localhost:3000/');
+    expect(prompt).toContain('@reticlehq/server verify http://localhost:3000/');
   });
 
   it('reports a low score as information only: no lock, no reason, and no prompt without a gap', () => {

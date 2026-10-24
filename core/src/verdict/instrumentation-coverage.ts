@@ -177,8 +177,11 @@ export const AGENT_PROMPT_LEAD =
   "Read https://docs.reticle.sh/skill.md, then improve Reticle's coverage in this repo:";
 /** The last line: what the agent hands back. */
 export const AGENT_PROMPT_TAIL = 'Report the coverage line it prints.';
-/** The placeholder the person replaces with the journey their change touched. */
-const JOURNEY_PLACEHOLDER = '<one journey you changed>';
+/**
+ * The placeholder the agent replaces with the end state of the journey its change touched. It names
+ * a JSON predicate, because `--expect` parses JSON and refuses prose.
+ */
+const JOURNEY_PLACEHOLDER = '<JSON predicate for the end state of one journey you changed>';
 
 /**
  * The copy-paste prompt for a coding agent: only the gaps verdicts recorded, each with its fix and
@@ -202,7 +205,7 @@ export function agentPromptFor(input: {
     AGENT_PROMPT_LEAD,
     `App: ${input.appName} at ${input.url}`,
     ...new Set(items),
-    `Then run: reticle verify ${input.url} --expect "${JOURNEY_PLACEHOLDER}"`,
+    `Then run: npx @reticlehq/server verify ${input.url} --expect '${JOURNEY_PLACEHOLDER}'`,
     AGENT_PROMPT_TAIL,
   ].join('\n');
 }
