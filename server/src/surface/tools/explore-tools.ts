@@ -100,14 +100,15 @@ export const EXPLORE_TOOLS: ToolDef[] = [
         .describe(
           'Active session ID from reticle_sessions. Omit when only one browser session is open.',
         ),
-      driveId: z.string().optional(),
-      // Bare on purpose: the description and every `running` answer say how to poll, and this
-      // schema is re-sent on every turn of every session.
+      driveId: z.string().optional().describe('The drive id an explore call answered with.'),
       wait: z.number().min(0).max(WAIT_MAX_S).optional().describe('Seconds; default 50.'),
-      runId: z.string().optional(),
+      runId: z
+        .string()
+        .optional()
+        .describe('The run id an explore call answered with; pass it to poll that run.'),
       planId: z.string().optional().describe('Run a plan saved on the dashboard, as it stands.'),
-      stop: z.boolean().optional(),
-      say: z.string().optional(),
+      stop: z.boolean().optional().describe('With runId: stop that Harness run.'),
+      say: z.string().optional().describe('With runId: a note to the running Harness.'),
     },
     // Everything the handler returns has to be declared, or a schema-aware client never sees it.
     // Optional throughout: a drive still running answers only its status, id and progress.

@@ -13,7 +13,7 @@ import {
   type ToolSurface,
 } from '@/surface/tools/tool-surface.js';
 import { ReticleTool } from '@reticlehq/core';
-import { SHARED_PARAM_SHORT } from './shared-params.js';
+import { sharedParamShort } from './shared-params.js';
 import { buildDynamicTools } from '@/surface/tools/dynamic-tools.js';
 import { runTool } from '@/surface/tools/invoke-tool.js';
 import { sessionEnvelopeShape, newSnapshotCache, type ToolCall } from '@/surface/tools/tool-kit.js';
@@ -182,7 +182,7 @@ function leanZodShape(
     }
     // Shared boilerplate is documented once in the initialize instructions instead of on every
     // tool, every turn. `sessionId` alone was 2,076 bytes of identical text across 16 tools.
-    const shared = SHARED_PARAM_SHORT[key];
+    const shared = sharedParamShort(key, schema);
     if (shared !== undefined) {
       // `.describe` returns the same schema with new prose, so optionality carries over. Re-wrapping
       // in `.optional()` would nest one inside another and change the parameter's TYPE, which is a
