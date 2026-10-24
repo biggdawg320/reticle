@@ -139,10 +139,10 @@ const DEFAULT_SETTINGS: PresenterSettings = {
   showTimestamps: true,
   // ON by default: the chat IS the HUD's content, and shipping it off meant the default experience
   // was a bare toolbar until somebody found the toggle. `expand()` has always opened the chat for
-  // the same reason; this is the other half — session start, with no click at all.
+  // the same reason; this is the other half — the agent's first action, with no click at all.
   //
-  // Safe to default because `openChat()` expands a collapsed HUD, and session start is the one
-  // moment where that is what you want. A user who prefers the bare toolbar turns this off and it
+  // Not at session start: a bridge that answered has nothing to show yet, and the open panel then
+  // covered the app on a fresh install. A user who prefers the bare toolbar turns this off and it
   // stays off: a stored `false` is honoured over the default, which is pinned in
   // presenter-chat-default.test.ts so the product cannot change somebody's answer behind their back.
   autoOpenChat: true,
@@ -229,7 +229,10 @@ function settingsHelpIcon(): string {
 /** Each option's name and the one line under it that says what it does. */
 const SETTING_TEXT = {
   outputDetail: ['Output detail', 'How much a copied run includes.'],
-  autoOpenChat: ['Open the log automatically', 'Opens this panel when a session starts.'],
+  autoOpenChat: [
+    'Open the log automatically',
+    'Opens this panel when an agent starts to act in this tab.',
+  ],
   showTimestamps: ['Show timestamps', 'Shows how long ago each log row happened.'],
   showTally: ['Show pass/fail count', 'A score pill for this session in the toolbar.'],
   reactComponents: ['React component names', 'Adds component names to copied runs.'],

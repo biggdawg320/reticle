@@ -154,7 +154,7 @@ function switchable(s: HarnessRowState): boolean {
  * otherwise one button that names the state and opens the Harness page.
  */
 export function harnessFootHtml(s: HarnessRowState): string {
-  // Signed out the rail just below asks to sign in for the Harness: a row here was a second ask.
+  // Signed out the sign-in ask just above asks for the Harness: a row here was a second ask.
   if (s.account === undefined || !s.account.signedIn) return '';
   // A run in progress: its steps open the Harness page, where the run is shown; Stop stays here.
   if (s.drive !== undefined && s.canDrive)

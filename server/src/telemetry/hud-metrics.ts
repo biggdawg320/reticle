@@ -55,6 +55,8 @@ interface TabState {
   view: Open<HudView> | undefined;
   panel: Open<HudPanel> | undefined;
   hidden: boolean;
+  /** A person pressed a HUD control since the panel last changed. */
+  pressed: boolean;
 }
 
 /** What one HUD use means for the per-event signals, beside what it adds to the summary. */
@@ -105,6 +107,7 @@ export class HudMetrics {
       const key = use.toggle === undefined ? control : `${control}:${use.toggle}`;
       this.#controls.set(key, (this.#controls.get(key) ?? 0) + 1);
       this.#step(key);
+      tab.pressed = true;
     }
     const at = this.#now();
     const since = tab.hidden ? undefined : at;
@@ -114,9 +117,11 @@ export class HudMetrics {
       this.#step(`view:${use.view}`);
     }
     if (use.panel !== undefined && use.panel !== tab.panel?.value) {
-      // The HUD opens the Agent Log by itself when a page loads. That is not a choice, so it is not
-      // a view. Its time still counts in `hudPanelMs`.
-      const opensByItself = tab.panel === undefined && HudPanel.CHAT === use.panel;
+      // The HUD opens the Agent Log by itself when an agent acts, or on load when the person left it
+      // open. No press came first, so it is not a choice and not a view. Its time still counts in
+      // `hudPanelMs`.
+      const opensByItself = HudPanel.CHAT === use.panel && !tab.pressed;
+      tab.pressed = false;
       this.#close(tab.panel, this.#panelMs);
       tab.panel = { value: use.panel, since };
       if (use.panel !== HudPanel.NONE) {
@@ -164,6 +169,7 @@ export class HudMetrics {
       view: undefined,
       panel: undefined,
       hidden: false,
+      pressed: false,
     };
     this.#tabs.set(tabId, tab);
     return tab;

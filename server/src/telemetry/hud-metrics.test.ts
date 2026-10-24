@@ -148,7 +148,22 @@ describe('HUD page views and prompts, for their own events', () => {
     expect(m.record({ view: HudView.EXPANDED, panel: HudPanel.CHAT }, 'a').viewed).toBeUndefined();
     m.record({ panel: HudPanel.FLOWS }, 'a');
     // The person opened it again: that is a choice, and a view.
+    m.record({ control: 'chat-view-btn.activity' }, 'a');
     expect(m.record({ panel: HudPanel.CHAT }, 'a').viewed).toBe(HudPanel.CHAT);
+  });
+
+  it('does not call the Agent Log a view when it opens by itself on a closed HUD', () => {
+    const m = new HudMetrics(clock().now);
+    m.record({ view: HudView.BUBBLE, panel: HudPanel.NONE }, 'a');
+    // The agent acted, and the HUD opened its log: no press came first.
+    expect(m.record({ view: HudView.EXPANDED, panel: HudPanel.CHAT }, 'a').viewed).toBeUndefined();
+    m.record({ control: 'min-btn' }, 'a');
+    m.record({ view: HudView.BUBBLE, panel: HudPanel.NONE }, 'a');
+    // The person pressed the dock: that is a choice, and a view.
+    m.record({ control: 'fab' }, 'a');
+    expect(m.record({ view: HudView.EXPANDED, panel: HudPanel.CHAT }, 'a').viewed).toBe(
+      HudPanel.CHAT,
+    );
   });
 
   it('never calls the closed HUD a page view', () => {

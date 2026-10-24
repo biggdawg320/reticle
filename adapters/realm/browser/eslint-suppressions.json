@@ -681,7 +681,7 @@
   },
   "src/presenter/presenter-frame.ts": {
     "curly": {
-      "count": 2
+      "count": 1
     }
   },
   "src/presenter/presenter-glow.ts": {
@@ -780,7 +780,7 @@
   },
   "src/presenter/presenter.ts": {
     "curly": {
-      "count": 58
+      "count": 57
     },
     "no-nested-ternary": {
       "count": 2
