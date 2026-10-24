@@ -10,6 +10,8 @@ export interface SkillCopy {
   homepage: string;
   source: string;
   internal: boolean;
+  /** Pin the `init` command to the release version, as the plugin pins its daemon. */
+  pinInit?: boolean;
 }
 
 /** Every generated copy, in the order the generator writes them. */

@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CANONICAL_MARKER = 'RETICLE_INSTALL_SOURCE=skill_file';
+const LATEST_INIT = '@reticlehq/server@latest init';
 const DESCRIPTION =
   'Install, instrument and verify this running web app from the inside (DOM, network, routing, console and framework state) instead of screenshots or guessing. Drives one real flow end to end and returns a verdict with the file:line to fix. Use when the user asks to set up or install Reticle, when a user-facing change needs proving before you call it done, when a test passes but the UI is broken, or when the user types /reticle.';
 const ALIAS_DESCRIPTION =
@@ -43,6 +44,8 @@ export const SKILL_COPIES = [
     homepage: 'https://www.reticle.sh',
     source: 'plugin',
     internal: true,
+    // The plugin pins its daemon to this release, so its `init` must install the same SDK.
+    pinInit: true,
   },
   {
     path: 'skills/reticle/SKILL.md',
@@ -83,7 +86,10 @@ export function syncSkill(root = ROOT) {
       '',
       '',
     ].join('\n');
-    const text = body.split(CANONICAL_MARKER).join(`RETICLE_INSTALL_SOURCE=${copy.source}`);
+    const marked = body.split(CANONICAL_MARKER).join(`RETICLE_INSTALL_SOURCE=${copy.source}`);
+    const text = copy.pinInit
+      ? marked.split(LATEST_INIT).join(`@reticlehq/server@${version} init`)
+      : marked;
     out.set(copy.path, frontmatter + text);
   }
   return out;

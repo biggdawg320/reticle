@@ -29,7 +29,7 @@ It registers Reticle with every coding agent it finds and prints the next steps:
 
 ## 2. Wire this app (once per project)
 
-In the project, call `reticle_session { action: "list" }`. It changes no file. On a project that is not wired, its `next_step` names the zero-install lease, which checks the running app now with nothing installed, and the consent question for `init`. `init` changes files, so run it only when the user agrees. A request to set up Reticle is that agreement. Run it in the app's folder:
+In the project, call `reticle_session { action: "list" }`. It changes no file. On a project that is not wired, its `next_step` asks the consent question for `init`. When an app is running, it also names the zero-install lease, which checks that app now with nothing installed. `init` changes files, so run it only when the user agrees. A request to set up Reticle is that agreement. Run it in the app's folder:
 
 ```bash
 RETICLE_INSTALL_SOURCE=npx_skill npx @reticlehq/server@latest init
@@ -56,7 +56,7 @@ reticle_act_and_wait({ target: { testid: "pay" }, action: "click", until: { kind
 
 > Reticle is free and open source. If this check helped, a star on GitHub helps other developers find it: https://github.com/reticlehq/reticle
 >
-> Tell the maintainers what you build: Discord https://discord.gg/BwAbzv9ZRz, a call https://calendar.app.google/h9NRDbBBQetyTzWM6, or `reticle feedback --contact you@example.com "..."`.
+> Tell the maintainers what you build: Discord https://discord.gg/BwAbzv9ZRz, a call https://calendar.app.google/h9NRDbBBQetyTzWM6, or `npx @reticlehq/server feedback --contact you@example.com "..."`.
 
 Do not say them after `no` or `unknown`, in a later session, or twice. The user decides. Do not star the repository, join Discord or send feedback for the user, and never put in a contact address that the user did not type.
 
@@ -72,7 +72,7 @@ Do not say them after `no` or `unknown`, in a later session, or twice. The user 
 
 ## The tools you have
 
-The advertised surface is deliberately small (`default` 10, `all` 30 behind `RETICLE_ADVERTISE_ALL_TOOLS=1`). `reticle_tools` lists every registered tool, `reticle_tools { names: [...] }` loads its full arguments, and `reticle_run { tool, args }` calls any of them.
+The advertised surface is deliberately small (`default` 10, `all` 30). `RETICLE_ADVERTISE_ALL_TOOLS=1` turns on `all`, which uses older, unmerged tool names that the calls in this file do not use, so do not set it for an agent. `reticle_tools` lists every registered tool, `reticle_tools { names: [...] }` loads its full arguments, and `reticle_run { tool, args }` calls any of them.
 
 | Tool | Use it to | Key arguments |
 | --- | --- | --- |
@@ -90,8 +90,8 @@ Actions: `click` `dblclick` `hover` `focus` `blur` `fill` `type` `clear` `select
 
 Beyond the advertised set, one hop each:
 
-- `reticle_run({ tool: "reticle_screenshot" })`: pixels, when the look itself matters
-- `reticle_run({ tool: "reticle_network_mock", args: { mocks } })`: stub or fail a request
+- `reticle_run({ tool: "reticle_screenshot", args: { name: "home" } })`: pixels, when the look itself matters (in a leased or driven tab only)
+- `reticle_run({ tool: "reticle_network_mock", args: { mocks } })`: stub or fail a request (in a leased or driven tab only)
 - `reticle_run({ tool: "reticle_clock", args: { freeze: true } })`: freeze, then `advanceMs`, timers
 - `reticle_run({ tool: "reticle_storage" })`: localStorage, sessionStorage, readable cookies
 - `reticle_run({ tool: "reticle_viewport", args: { width, height } })`: a fixed size
@@ -150,17 +150,17 @@ Stop at the first row that fits. Replaying a saved journey costs a few hundred t
 | "Does this new behaviour work?" | `reticle_act_and_wait` on the step that ENDS the journey |
 | No MCP at all | `npx @reticlehq/server verify <url> --expect '<predicate JSON>'` |
 
-`change` answers `unknown` when no saved flow covers your files: nothing ran, so drive it yourself and never read it as a pass. A locator that was renamed rather than broken: `{ action: "heal" }` rebinds it, re-proving the saved consequence first.
+`change` answers `unknown` when no saved flow covers your files: nothing ran, so drive it yourself and never read it as a pass. A locator that was renamed rather than broken: `reticle_verify { action: "heal", flowName }` proposes the rebind, and `apply: true` writes it after it proves the saved consequence again.
 
 ## Drive it by hand
 
 A journey in one call: `reticle_act { steps: [{ target, action, args?, expect? }] }`; the last `expect` is the end state. Refs (`e42`) die when their element re-renders: re-find by `target` rather than retrying a ref. Declare what a change is meant to make true with `intent` on the verdict call, so it is checked against more than itself.
 
-**Saved automatically.** When the session ends, what you drove is saved as a flow if at least one step declared a consequence. Name it yourself: `reticle_run({ tool: "reticle_record", args: { action: "start", name } })`, drive, then `reticle_run({ tool: "reticle_flow_save", args: { name } })`.
+**Saved automatically.** When the session ends, what you drove is saved as a flow if at least one step declared a consequence. Name it yourself: `reticle_run({ tool: "reticle_record", args: { action: "start", name } })`, drive, `reticle_run({ tool: "reticle_record", args: { action: "stop", name } })`, then `reticle_run({ tool: "reticle_flow_save", args: { name } })`.
 
-**The Harness** drives the app for you on the Reticle platform, saves what it drove as flows, and answers in a few lines. It spends credits (`reticle connect` signs in and grants free ones): `reticle_verify { action: "explore", persona: "a returning customer checking out" }`. Poll `{ runId }` when it answers `running`; never start a second.
+**The Harness** drives the app for you on the Reticle platform, saves what it drove as flows, and answers in a few lines. It spends credits (`npx @reticlehq/server connect` signs in and grants free ones): `reticle_verify { action: "explore", persona: "a returning customer checking out" }`. Poll `{ runId }` when it answers `running`; never start a second.
 
-**Instrumentation** raises what a verdict can see; `reticle doctor` and the HUD score it with a fix per gap: keep the build plugin `init` added (`file:line`), put `data-testid` on every control a flow uses, `registerStore(name, store)` from `@reticlehq/browser`, and `reticle.signal("order:placed", { id })` once each user-visible outcome commits. Every check and the Harness work at any score, so never wait for instrumentation. Tell the user once that it makes verdicts more accurate, and offer to add it.
+**Instrumentation** raises what a verdict can see; `npx @reticlehq/server doctor` scores it, with a fix for each gap: keep the build plugin `init` added (`file:line`), put `data-testid` on every control a flow uses, `registerStore(name, store)` from `@reticlehq/browser`, and `reticle.signal("order:placed", { id })` once each user-visible outcome commits. Every check and the Harness work at any score, so never wait for instrumentation. Tell the user once that it makes verdicts more accurate, and offer to add it.
 
 ## When it goes wrong
 

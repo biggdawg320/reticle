@@ -165,6 +165,22 @@ describe('the skill copies agree about the rules', () => {
   });
 
   /**
+   * The plugin pins its daemon to one server version, and its nudge pins `init` to the same one, so
+   * the SDK that `init` installs speaks the daemon's contract. The plugin's skill copy said
+   * `@latest`: after the next release, a plugin user got a newer SDK than the pinned daemon.
+   */
+  it('makes the plugin copy run the init of the server version the plugin pins', () => {
+    const manifest = JSON.parse(read('plugins/reticle/.claude-plugin/plugin.json')) as {
+      mcpServers: { reticle: { args: string[] } };
+    };
+    const pinned = manifest.mcpServers.reticle.args.find((a) => a.startsWith('@reticlehq/server@'));
+    expect(pinned, 'plugin.json pins no @reticlehq/server version').toBeDefined();
+    const copy = read('plugins/reticle/SKILL.md');
+    expect(copy).toContain(`npx ${pinned ?? ''} init`);
+    expect(copy).not.toContain('@reticlehq/server@latest init');
+  });
+
+  /**
    * EVERY skill that ships an install command, not the one somebody happened to open.
    *
    * `install-and-verify` was found missing its marker by inspection; `verify-unattended` was missing
