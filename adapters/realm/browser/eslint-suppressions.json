@@ -308,11 +308,6 @@
       "count": 2
     }
   },
-  "src/dom/text-match.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
   "src/dom/theme.ts": {
     "curly": {
       "count": 12
