@@ -235,3 +235,66 @@ export function drainLines(
     discarding: restOversized,
   };
 }
+
+/** JSON-RPC id the proxy uses for its own replayed `initialize` — never one the client could send. */
+export const RECONNECT_INITIALIZE_ID = '__reticle_proxy_reinit';
+const INITIALIZE_METHOD = 'initialize';
+const INITIALIZED_METHOD = 'notifications/initialized';
+
+/**
+ * Makes a reconnect invisible to the client.
+ *
+ * The daemon builds a FRESH `McpServer` per SSE connection, so a reconnected session has never seen
+ * the client's `initialize` — every subsequent `tools/call` would hit an uninitialized server. The
+ * proxy therefore remembers the handshake the client sent once and replays it into each new session.
+ * The replay is re-issued under a reserved id so the daemon's response to it can be dropped rather
+ * than reaching the client's stdout, where a duplicate JSON-RPC id would be a protocol violation.
+ */
+export class HandshakeReplay {
+  #initialize: string | null = null;
+  #initialized: string | null = null;
+  #pendingReplayId: string | null = null;
+
+  /** Record one outbound client line. Cheap enough to call for every stdin message. */
+  observeOutbound(line: string): void {
+    const msg = parseLine(line);
+    if (null === msg) {
+      return;
+    }
+    // The first initialize is the session's identity; a client re-issuing one does not change it.
+    if (msg.method === INITIALIZE_METHOD && null === this.#initialize) {
+      this.#initialize = line;
+    } else if (msg.method === INITIALIZED_METHOD) {
+      this.#initialized = line;
+    }
+  }
+
+  /** Lines to POST into a freshly-established session, before any queued client traffic. */
+  replayLines(): string[] {
+    if (null === this.#initialize) {
+      return [];
+    }
+    const msg = parseLine(this.#initialize);
+    if (null === msg) {
+      return [];
+    }
+    this.#pendingReplayId = RECONNECT_INITIALIZE_ID;
+    const reinit = { ...msg, id: RECONNECT_INITIALIZE_ID };
+    return null === this.#initialized
+      ? [JSON.stringify(reinit)]
+      : [JSON.stringify(reinit), this.#initialized];
+  }
+
+  /** True when this inbound daemon line is the echo of our replayed handshake and must not be forwarded. */
+  shouldSuppressInbound(line: string): boolean {
+    if (null === this.#pendingReplayId) {
+      return false;
+    }
+    const msg = parseLine(line);
+    if (null === msg || msg.id !== this.#pendingReplayId) {
+      return false;
+    }
+    this.#pendingReplayId = null; // one response per replay — anything later is not ours to swallow
+    return true;
+  }
+}

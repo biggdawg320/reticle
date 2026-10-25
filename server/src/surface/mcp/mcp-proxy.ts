@@ -8,7 +8,9 @@ import {
   drainLines,
   MAX_STDIN_LINE_BYTES,
   parseLine as parseJsonRpc,
+  HandshakeReplay,
 } from './proxy/proxy-handshake.js';
+export { HandshakeReplay, RECONNECT_INITIALIZE_ID } from './proxy/proxy-handshake.js';
 import { isToolCallRequest, isToolsListRequest, ToolCatalogCache } from './tool-catalog-cache.js';
 import { rememberEnumerated, rememberProxyStarted, rememberToolCalled } from './attach-memory.js';
 import { toolsChangedNotification } from './proxy/proxy-handshake.js';
@@ -23,7 +25,12 @@ import {
 } from '@reticlehq/core';
 import { SseFrameParser, buildSessionUrl } from './sse-frame-parser.js';
 export { SseFrameParser, buildSessionUrl, type SseFrame } from './sse-frame-parser.js';
-export { probeDaemon, waitForDaemon, waitForDaemonBind } from './proxy/proxy-daemon-probe.js';
+export {
+  daemonProcessAlive,
+  probeDaemon,
+  waitForDaemon,
+  waitForDaemonBind,
+} from './proxy/proxy-daemon-probe.js';
 import { probeDaemon } from './proxy/proxy-daemon-probe.js';
 import { SERVER_VERSION } from '@/command/version/identity/server-version.js';
 import { buildServerInstructions, localizeInstructions } from './server-instructions.js';
@@ -106,10 +113,6 @@ export const MAX_RECONNECT_ATTEMPTS = ((): number => {
   return Number.isInteger(raw) && raw > 0 ? raw : DEFAULT_MAX_RECONNECT_ATTEMPTS;
 })();
 
-/** JSON-RPC id the proxy uses for its own replayed `initialize` — never one the client could send. */
-export const RECONNECT_INITIALIZE_ID = '__reticle_proxy_reinit';
-
-const INITIALIZE_METHOD = 'initialize';
 /**
  * How long the handshake waits on the daemon before the proxy answers it.
  *
@@ -118,7 +121,6 @@ const INITIALIZE_METHOD = 'initialize';
  * past 25s with nothing on stderr, and the reported client gave up at 60s having run no tools.
  */
 const LOCAL_HANDSHAKE_MS = 12_000;
-const INITIALIZED_METHOD = 'notifications/initialized';
 
 /**
  * How long stdin closing gives the daemon to answer what is still in flight.
@@ -177,64 +179,6 @@ export function queueExpiryNextStep(port: number): string {
     'one. If it keeps failing, run `npx @reticlehq/server doctor` in a terminal: it reports what ' +
     'is holding the port and whether the daemon can start at all.'
   );
-}
-
-/**
- * Makes a reconnect invisible to the client.
- *
- * The daemon builds a FRESH `McpServer` per SSE connection, so a reconnected session has never seen
- * the client's `initialize` — every subsequent `tools/call` would hit an uninitialized server. The
- * proxy therefore remembers the handshake the client sent once and replays it into each new session.
- * The replay is re-issued under a reserved id so the daemon's response to it can be dropped rather
- * than reaching the client's stdout, where a duplicate JSON-RPC id would be a protocol violation.
- */
-export class HandshakeReplay {
-  #initialize: string | null = null;
-  #initialized: string | null = null;
-  #pendingReplayId: string | null = null;
-
-  /** Record one outbound client line. Cheap enough to call for every stdin message. */
-  observeOutbound(line: string): void {
-    const msg = parseJsonRpc(line);
-    if (null === msg) {
-      return;
-    }
-    // The first initialize is the session's identity; a client re-issuing one does not change it.
-    if (msg.method === INITIALIZE_METHOD && null === this.#initialize) {
-      this.#initialize = line;
-    } else if (msg.method === INITIALIZED_METHOD) {
-      this.#initialized = line;
-    }
-  }
-
-  /** Lines to POST into a freshly-established session, before any queued client traffic. */
-  replayLines(): string[] {
-    if (null === this.#initialize) {
-      return [];
-    }
-    const msg = parseJsonRpc(this.#initialize);
-    if (null === msg) {
-      return [];
-    }
-    this.#pendingReplayId = RECONNECT_INITIALIZE_ID;
-    const reinit = { ...msg, id: RECONNECT_INITIALIZE_ID };
-    return null === this.#initialized
-      ? [JSON.stringify(reinit)]
-      : [JSON.stringify(reinit), this.#initialized];
-  }
-
-  /** True when this inbound daemon line is the echo of our replayed handshake and must not be forwarded. */
-  shouldSuppressInbound(line: string): boolean {
-    if (null === this.#pendingReplayId) {
-      return false;
-    }
-    const msg = parseJsonRpc(line);
-    if (null === msg || msg.id !== this.#pendingReplayId) {
-      return false;
-    }
-    this.#pendingReplayId = null; // one response per replay — anything later is not ours to swallow
-    return true;
-  }
 }
 
 /**
@@ -459,12 +403,9 @@ export function startMcpProxy(
     /**
      * What the outage had already cost when the proxy went dormant.
      *
-     * The wake path clears `attempts` before dialling, and it must: a wake is a fresh retry budget,
-     * and sharing the previous outage's spent budget would put the proxy dormant again on its first
-     * failure. But the recovery report is guarded on `attempts > 0`, so clearing it also erased the
-     * evidence that there was anything to recover FROM — and dormancy is the commonest outage class
-     * we have, which made every recovery of that class invisible. Carried across the wake so the
-     * budget resets and the accounting does not.
+     * `wake` clears `attempts`, because a wake gets a fresh retry budget. The recovery report needs
+     * `attempts > 0`, so the clear also hid every recovery from dormancy, the most common outage.
+     * This count goes across the wake: the budget resets, and the accounting does not.
      */
     let attemptsBeforeDormant = 0;
     /**
@@ -724,6 +665,10 @@ export function startMcpProxy(
           return;
         }
         settled = true;
+        if (first && !responded && boot !== undefined) {
+          bootFailed(); // The start waited until the daemon served, so the daemon is gone.
+          return;
+        }
         if (first && !responded) {
           // A refused port on the very first connect is a daemon still booting, not a failure. Keep
           // chasing it: nothing else will, because only a fresh client request re-probes the port
@@ -750,18 +695,52 @@ export function startMcpProxy(
       });
     }
 
+    /** The ONLY path that starts a daemon (see proxy-lifecycle.ts). `endpoint` flushes the queue. */
+    function wake(): void {
+      dormant = false;
+      // Budget reset, accounting preserved. See attemptsBeforeDormant.
+      attemptsBeforeDormant += attempts;
+      attempts = 0;
+      void (ensureDaemon?.() ?? Promise.resolve())
+        .then((resolved) => {
+          port = resolved ?? port;
+          return connect(false);
+        })
+        .catch((err: unknown) => {
+          dormant = true;
+          const reason = withStateDirDiagnostic(err instanceof Error ? err.message : String(err));
+          proxyLog('reticle_mcp_proxy_wake_failed', { port, error: reason });
+          // The failure IS the answer to everything the wake was for. Do not wait for the timer.
+          expireQueue(reason);
+        });
+    }
+
     if (boot === undefined) {
       connect(true);
     } else {
-      // Dial when the start is done, at the port it settled on. A failed start still dials, as before.
+      // Dial when the start is done, at the port it settled on.
       void boot.ready
-        .then(
-          (resolved) => {
-            port = resolved ?? port;
-          },
-          () => undefined,
-        )
-        .finally(() => connect(true));
+        .catch(() => undefined)
+        .then((resolved) => {
+          if ('number' === typeof resolved) {
+            port = resolved;
+            connect(true);
+          } else {
+            bootFailed();
+          }
+        });
+    }
+
+    /**
+     * No daemon came from the start, for example because it died before or just after it served.
+     * The first-connect retry never starts a daemon, so a queued call waited until the queue
+     * expired. Go dormant, and wake now for a request that waits.
+     */
+    function bootFailed(): void {
+      dormant = true;
+      if (0 < stdinQueue.length) {
+        wake();
+      }
     }
 
     // ── stdin reader ─────────────────────────────────────────────────────────
@@ -933,31 +912,8 @@ export function startMcpProxy(
         // Answer it ourselves after a bounded wait; the daemon still receives the client's own
         // initialize when a session is finally established (replayLines).
         armLocalHandshake(trimmed);
-        // WAKE is the ONLY path allowed to start a daemon — see proxy-lifecycle.ts. The queue is
-        // flushed once the new session's `endpoint` frame arrives.
         if (action === OnRequest.WAKE) {
-          dormant = false;
-          // Budget reset, accounting preserved. See attemptsBeforeDormant.
-          attemptsBeforeDormant += attempts;
-          attempts = 0;
-          void (ensureDaemon?.() ?? Promise.resolve())
-            .then((resolved) => {
-              port = resolved ?? port;
-              return connect(false);
-            })
-            .catch((err: unknown) => {
-              dormant = true;
-              const reason = withStateDirDiagnostic(
-                err instanceof Error ? err.message : String(err),
-              );
-              proxyLog('reticle_mcp_proxy_wake_failed', { port, error: reason });
-              // The wake is the only thing that can start a daemon, so its failure IS the answer to
-              // everything it was woken for. It used to be logged and nothing else: the request sat
-              // out the full QUEUE_WAIT_MS and was then refused by a timer that could only say "no
-              // daemon could be reached" — twenty seconds later, and less true, than the sentence
-              // already in hand.
-              expireQueue(reason);
-            });
+          wake();
         }
       }
     });

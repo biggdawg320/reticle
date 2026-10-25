@@ -115,7 +115,8 @@ describe('a client that starts before the daemon is up', () => {
     vi.unstubAllEnvs();
   });
 
-  it('gets initialize and the tool list at once, and its tool call waits for the daemon', async () => {
+  /** Put the proxy on a fake stdin, and collect what it writes to stdout. */
+  function attachClient(): { send: (msg: object) => boolean; replies: Reply[] } {
     vi.spyOn(getTelemetry(), 'emit').mockResolvedValue(true);
     vi.stubEnv('HOME', mkdtempSync(join(tmpdir(), 'reticle-cold-start-')));
     const stdin = new PassThrough({ encoding: 'utf8' });
@@ -139,6 +140,63 @@ describe('a client that starts before the daemon is up', () => {
       }
       return true;
     });
+    const send = (msg: object): boolean =>
+      stdin.write(`${JSON.stringify({ jsonrpc: '2.0', ...msg })}\n`);
+    return { send, replies };
+  }
+
+  // The daemon died while it started, or just after. A dial to its port is refused, and the proxy
+  // retried that dial and never started a new daemon. The tool call waited in the queue until the
+  // queue expired, and the agent got an error for a call that a new daemon can answer.
+  // Port 1: nothing listens there, so a dial to it is refused.
+  it.each([
+    ['fails', undefined],
+    ['ends, and the daemon dies before the proxy dials it', 1],
+  ])(
+    'starts a new daemon for a waiting tool call when the first start %s',
+    async (_, result) => {
+      const { send, replies } = attachClient();
+      let failed: () => void = () => undefined;
+      const ready = new Promise<number | void>((resolve) => (failed = () => resolve(result)));
+      const daemon = await startFakeDaemon();
+      cleanups.push(() => daemon.close());
+      let wakes = 0;
+      void startMcpProxy(
+        1,
+        () => {
+          wakes++;
+          return Promise.resolve(daemon.port);
+        },
+        undefined,
+        undefined,
+        {
+          ready,
+          spawning: Promise.resolve(),
+          tools: async () => staticToolCatalog(resolveToolSurface()),
+        },
+      ).catch(() => undefined);
+
+      send({ id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } });
+      send({ method: 'notifications/initialized' });
+      send({ id: 2, method: 'tools/call', params: { name: 'reticle_look', arguments: {} } });
+      await vi.waitFor(() => expect(replies.some((r) => 1 === r.id)).toBe(true), {
+        timeout: 5_000,
+      });
+      failed();
+
+      await vi.waitFor(() => expect(replies.some((r) => 2 === r.id)).toBe(true), {
+        timeout: 10_000,
+      });
+      expect(replies.filter((r) => 2 === r.id)).toEqual([
+        { jsonrpc: '2.0', id: 2, result: { content: [], from: 'daemon' } },
+      ]);
+      expect(wakes, 'one new start, not one for each retry').toBe(1);
+    },
+    30_000,
+  );
+
+  it('gets initialize and the tool list at once, and its tool call waits for the daemon', async () => {
+    const { send, replies } = attachClient();
     // The daemon is being started, and it is not up until the test says so.
     let up: (port: number) => void = () => undefined;
     const ready = new Promise<number>((resolve) => (up = resolve));
@@ -148,8 +206,6 @@ describe('a client that starts before the daemon is up', () => {
       tools: async () => staticToolCatalog(resolveToolSurface()),
     }).catch(() => undefined);
 
-    const send = (msg: object): boolean =>
-      stdin.write(`${JSON.stringify({ jsonrpc: '2.0', ...msg })}\n`);
     send({ id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } });
     send({ method: 'notifications/initialized' });
     send({ id: 2, method: 'tools/list' });
