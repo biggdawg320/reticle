@@ -51,6 +51,8 @@ import {
 } from '@/telemetry/proxy-telemetry.js';
 export { flushProxyExit, reportWakeRefused } from '@/telemetry/proxy-telemetry.js';
 import { detectStack } from '@/telemetry/feedback-context.js';
+import type { ProxyBoot } from './proxy/proxy-boot.js';
+export type { ProxyBoot } from './proxy/proxy-boot.js';
 /**
  * The same `/status` probe `doctor`, `status` and `kill` ask with. Reused rather than re-written:
  * the whole defect this import closes was the proxy answering a DIFFERENT question from every other
@@ -252,9 +254,12 @@ export class HandshakeReplay {
  * an unreadable state home must never be the reason a handshake fails, so it degrades to the
  * fresh-install wording rather than throwing.
  */
-function proxyInstructions(port: number): string {
+function proxyInstructions(port: number, advertised?: readonly string[]): string {
   try {
-    return buildServerInstructions(instructionStateAt(port));
+    return buildServerInstructions({
+      ...instructionStateAt(port),
+      ...(advertised === undefined ? {} : { advertised }),
+    });
   } catch {
     return buildServerInstructions({ previouslyConnected: false });
   }
@@ -325,6 +330,11 @@ export function startMcpProxy(
    * function with no resilience installed.
    */
   onUsableSession: () => void = () => undefined,
+  /**
+   * The daemon start that runs while the proxy already reads stdin. A client that does not wait
+   * for MCP servers gets the handshake and the tool list before the daemon is up.
+   */
+  boot?: ProxyBoot,
 ): Promise<never> {
   let port = bootPort;
   return new Promise<never>((_resolve, reject) => {
@@ -356,7 +366,7 @@ export function startMcpProxy(
      * will never serve SSE, however long anybody waits. Declared up here with the other closure
      * state so the drop path can reach it without a temporal-dead-zone hazard.
      */
-    let deliverHandshakeLocally: ((reason: string) => void) | undefined;
+    let deliverHandshakeLocally: ((reason: string, tools?: unknown[]) => void) | undefined;
     const stdinQueue: string[] = [];
     /**
      * Fail anything still queued after QUEUE_WAIT_MS. Re-armed on every push and cleared on flush,
@@ -740,7 +750,19 @@ export function startMcpProxy(
       });
     }
 
-    connect(true);
+    if (boot === undefined) {
+      connect(true);
+    } else {
+      // Dial when the start is done, at the port it settled on. A failed start still dials, as before.
+      void boot.ready
+        .then(
+          (resolved) => {
+            port = resolved ?? port;
+          },
+          () => undefined,
+        )
+        .finally(() => connect(true));
+    }
 
     // ── stdin reader ─────────────────────────────────────────────────────────
     process.stdin.setEncoding('utf8');
@@ -785,20 +807,29 @@ export function startMcpProxy(
       if (claimed?.id !== undefined) {
         pending.take(claimed.id);
       }
-      deliverHandshakeLocally = (reason: string): void => {
+      deliverHandshakeLocally = (reason: string, tools?: unknown[]): void => {
         if (handshakeAnswered || postUrl !== null) {
           return;
         }
         // Built here, not at arm time, so the notice can name WHY no daemon answered. The client
         // reads `instructions` exactly once, at initialize, and this response is the only one it
         // will ever get — so a handshake that does not say it is unbacked never says it at all.
-        // See degradedInstructions for the field report this closes.
+        // See degradedInstructions for the field report this closes. With `tools`, the daemon is
+        // starting: the instructions are the healthy ones, and the list is the daemon's own.
         const response = localInitializeResponse(
           line,
-          degradedInstructions(proxyInstructions(port), port, withStateDirDiagnostic(reason)),
+          tools === undefined
+            ? degradedInstructions(proxyInstructions(port), port, withStateDirDiagnostic(reason))
+            : proxyInstructions(
+                port,
+                tools.map((tool) => (tool as { name?: unknown }).name as string),
+              ),
         );
         if (null === response) {
           return;
+        }
+        if (tools !== undefined) {
+          catalog.remember(tools);
         }
         handshakeAnswered = true;
         deliverHandshakeLocally = undefined;
@@ -817,11 +848,25 @@ export function startMcpProxy(
         }
         proxyLog('reticle_mcp_local_handshake', { port, reason });
         emit(response);
+        // A `tools/list` that came before this answer is in the queue. Answer it from the catalog.
+        for (let i = stdinQueue.length - 1; i >= 0; i--) {
+          const cached = catalog.answer(stdinQueue[i] ?? '');
+          if (cached !== null) {
+            stdinQueue.splice(i, 1);
+            emit(cached);
+          }
+        }
       };
       setTimeout(
         () => deliverHandshakeLocally?.('daemon did not answer in time'),
         LOCAL_HANDSHAKE_MS,
       ).unref();
+      // Our own daemon is starting on a free port. Answer now: some clients start their turn before
+      // a daemon can be up, and they do not wait for MCP servers.
+      void boot?.spawning
+        .then(boot.tools)
+        .then((tools) => deliverHandshakeLocally?.('the daemon is starting', tools))
+        .catch(() => undefined);
     };
 
     let stdinBuffer = '';

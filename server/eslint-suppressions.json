@@ -3324,11 +3324,6 @@
       "count": 3
     }
   },
-  "src/surface/mcp/tool-catalog-cache.ts": {
-    "curly": {
-      "count": 4
-    }
-  },
   "src/surface/mcp/toolless-session-recovery.test.ts": {
     "curly": {
       "count": 1

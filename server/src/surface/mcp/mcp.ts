@@ -662,6 +662,37 @@ export function mcpServerFactoryFor(
  */
 const FIRST_PARTY_TOOL_NAMES: ReadonlySet<string> = new Set(Object.values(ReticleTool));
 
+type ListOnlyRegister = (name: string, config: object, handler: () => { content: [] }) => void;
+
+/**
+ * The `tools/list` result this server serves on `surface`, built with no daemon and no deps. The
+ * proxy answers with it while its daemon starts. The same table, the same per-tool config and the
+ * same SDK conversion make it the same list; `proxy-cold-start.test.ts` holds the two equal.
+ */
+export async function staticToolCatalog(surface: ToolSurface): Promise<unknown[]> {
+  const [{ Client }, { InMemoryTransport }] = await Promise.all([
+    import('@modelcontextprotocol/sdk/client/index.js'),
+    import('@modelcontextprotocol/sdk/inMemory.js'),
+  ]);
+  const server = new McpServer(SERVER_INFO);
+  const register = server.registerTool.bind(server) as unknown as ListOnlyRegister;
+  const advertised = advertisedTools(surface);
+  for (const tool of advertised) {
+    // Never called: this server only lists.
+    register(tool.name, advertisedConfig(tool, advertised, surface), () => ({ content: [] }));
+  }
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await server.connect(serverTransport);
+  const client = new Client(SERVER_INFO);
+  await client.connect(clientTransport);
+  try {
+    return (await client.listTools()).tools;
+  } finally {
+    await client.close();
+    await server.close();
+  }
+}
+
 export function createMcpServer(
   rawDeps: ToolDeps,
   profile: ToolSurface = TOOL_SURFACE.DEFAULT,

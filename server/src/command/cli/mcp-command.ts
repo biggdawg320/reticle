@@ -187,6 +187,9 @@ export async function handleMcp(opts: {
    * a dead port until the budget ran out and the agent's MCP server exited with it. Reticle simply
    * disappeared mid-session with nothing said. Respawning here makes the reconnect self-healing.
    */
+  // Resolved when a new daemon process starts, so the proxy can answer the handshake at once.
+  let markSpawning: () => void = () => undefined;
+  const spawning = new Promise<void>((resolve) => (markSpawning = resolve));
   const ensure = async (mayRelocate = true): Promise<number> => {
     // The same question every other surface asks. It used to be a bare TCP connect, so a stranger on
     // the bridge port answered "a daemon is here" — the proxy connected, the stream ended, and each
@@ -253,6 +256,7 @@ export async function handleMcp(opts: {
       ...(httpPort !== undefined ? { httpPort } : {}),
       ...(httpToken !== undefined ? { httpToken } : {}),
     });
+    markSpawning();
     spawnDaemon(process.execPath, scriptPath, daemonArgs, port);
     // Announce the daemon only once the PORT ACCEPTS. This line used to be written the instant the
     // child was spawned, which on a Windows first bootstrap meant `reticle_mcp_daemon_started`
@@ -271,35 +275,50 @@ export async function handleMcp(opts: {
   // editor shows a server that failed to start. Nothing about that is unrecoverable: the proxy
   // answers `initialize` itself, serves the cached catalog, and its wake path retries a daemon on
   // every client request. Present-and-complaining beats absent, because absent needs a human.
-  // `void`: the chain handles its own failure and the process must not wait on it — the proxy is
-  // started from `finally` either way.
-  void ensure()
-    .catch((err: unknown) => {
-      log('reticle_mcp_daemon_unavailable', {
-        error: err instanceof Error ? err.message : String(err),
-        note: 'serving anyway — the next tool call will try to start a daemon again',
-      });
-    })
-    .finally(() => {
-      // Also `void`: the proxy runs for the life of the process and is never awaited by anyone.
-      //
-      // The `.catch` is load-bearing despite that. `startMcpProxy` rejects when its FIRST connect
-      // fails — which is precisely the case this block exists to tolerate, a daemon that is not
-      // there yet — and with nothing attached that reject became an unhandledRejection. Reported
-      // from a win32 user as a crash reading `connect ECONNREFUSED` with an EMPTY frame list,
-      // because the stack of a refused socket is entirely node internals and the privacy filter
-      // keeps only Reticle frames. So the one path we most want diagnosable arrived as an anonymous
-      // crash. The proxy itself is unaffected — it has already installed its stdin reader and goes
-      // on serving from cache, waking a daemon on the next request — which is exactly why this
-      // must be logged as the expected condition it is rather than reported as a defect.
-      void startMcpProxy(port, ensure, undefined, () => {
-        resilience.noteUsableSession();
-      }).catch((err: unknown) => {
-        log('reticle_mcp_proxy_first_connect_failed', {
-          port,
-          error: err instanceof Error ? err.message : String(err),
-          note: 'serving from cache; the next client request will try to start a daemon',
-        });
-      });
+  //
+  // The proxy starts NOW, beside the daemon start, and dials when the start is done. A client that
+  // does not wait for MCP servers gets the handshake and the tool list before the daemon is up.
+  const ready = ensure().catch((err: unknown) => {
+    log('reticle_mcp_daemon_unavailable', {
+      error: err instanceof Error ? err.message : String(err),
+      note: 'serving anyway — the next tool call will try to start a daemon again',
     });
+  });
+  // Also `void`: the proxy runs for the life of the process and is never awaited by anyone.
+  //
+  // The `.catch` is load-bearing despite that. `startMcpProxy` rejects when its FIRST connect
+  // fails — which is precisely the case this block exists to tolerate, a daemon that is not
+  // there yet — and with nothing attached that reject became an unhandledRejection. Reported
+  // from a win32 user as a crash reading `connect ECONNREFUSED` with an EMPTY frame list,
+  // because the stack of a refused socket is entirely node internals and the privacy filter
+  // keeps only Reticle frames. So the one path we most want diagnosable arrived as an anonymous
+  // crash. The proxy itself is unaffected — it has already installed its stdin reader and goes
+  // on serving from cache, waking a daemon on the next request — which is exactly why this
+  // must be logged as the expected condition it is rather than reported as a defect.
+  void startMcpProxy(
+    port,
+    ensure,
+    undefined,
+    () => {
+      resilience.noteUsableSession();
+    },
+    {
+      ready,
+      spawning,
+      // Loaded only when needed: the tool table is large, and a warm start never uses it.
+      tools: async () => {
+        const [{ staticToolCatalog }, { resolveToolSurface }] = await Promise.all([
+          import('@/surface/mcp/mcp.js'),
+          import('@/surface/tools/tool-surface.js'),
+        ]);
+        return staticToolCatalog(resolveToolSurface());
+      },
+    },
+  ).catch((err: unknown) => {
+    log('reticle_mcp_proxy_first_connect_failed', {
+      port,
+      error: err instanceof Error ? err.message : String(err),
+      note: 'serving from cache; the next client request will try to start a daemon',
+    });
+  });
 }
