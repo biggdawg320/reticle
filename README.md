@@ -159,7 +159,7 @@ It does three things in order, then prints your next steps. It asks you no quest
 
 1. Checks for Node 20.11 or newer. If Node is missing or too old, it stops and shows the fix.
 2. `npm install -g @reticlehq/server`, which puts the `reticle` command on your PATH.
-3. `reticle setup install`: registers Reticle's MCP server with every coding agent it finds on this machine (Claude Code, Cursor, Windsurf, VS Code, Zed, Gemini CLI, Copilot CLI, OpenCode, Antigravity, Warp, Kiro, Amazon Q, Cline, Roo Code, Amp, Continue, Factory Droid). Each entry runs `npx @reticlehq/server mcp`. If `codex` is on your PATH, the installer registers **Codex CLI** with `codex mcp add`. Reticle never edits the Codex TOML config. Without `codex`, the installer names `~/.codex/config.toml` for you to add these lines by hand:
+3. `reticle setup install`: registers Reticle's MCP server with every coding agent it finds on this machine (Claude Code, Cursor, Windsurf, VS Code, Zed, Gemini CLI, Copilot CLI, OpenCode, Antigravity, Warp, Kiro, Amazon Q, Cline, Roo Code, Amp, Continue, Factory Droid). Each entry runs `npx @reticlehq/server mcp`. If `codex` is on your PATH, the installer registers **Codex CLI** with `codex mcp add`. Reticle then adds one line, `default_tools_approval_mode = "approve"`, under `[mcp_servers.reticle]` in `~/.codex/config.toml`. This line approves Reticle's own tools, so Codex does not ask before each call. Reticle changes no other line, and it keeps a mode that you set. To undo it, change that line to `default_tools_approval_mode = "prompt"`. Reticle does not change a mode that is already there. Without `codex`, the installer names `~/.codex/config.toml` for you to add these lines by hand:
 
    ```toml
    [mcp_servers.reticle]
@@ -471,7 +471,7 @@ If `reticle status` lists a session, the SDK reached the page. Then run your fir
 | "no browser session connected" | The dev server was already running when `init` edited the build config, so it serves a bundle without the SDK | Restart the dev server and hard-reload the tab |
 | Browser console: `[Reticle] this page could not open a websocket to …` | The app and Reticle disagree on the port | `RETICLE_PORT=4400 npm run dev` (Vite plugin), `reticle({ port: 4400 })` in `vite.config`, or `reticle.connect({ url: 'ws://localhost:4400/reticle' })` by hand |
 | `init` stops with "Several apps found" | A monorepo | Rerun with the `reticle init --app <dir>` line it printed |
-| Codex does not see the tools | The `codex` command was not on PATH, and Reticle never edits a TOML file itself | `codex mcp add reticle -- npx @reticlehq/server mcp`, or add the block from [Wire everything by hand](#wire-everything-by-hand) to `~/.codex/config.toml` |
+| Codex does not see the tools | The `codex` command was not on PATH, so the installer could not run `codex mcp add` | `codex mcp add reticle -- npx @reticlehq/server mcp`, or add the block from [Wire everything by hand](#wire-everything-by-hand) to `~/.codex/config.toml` |
 | `reticle: command not found` | npm's global bin is not on your PATH | `export PATH="$(npm prefix -g)/bin:$PATH"`, or use `npx @reticlehq/server …` |
 | Anything else |  | `reticle doctor` checks the browser, the background service and the port in one go, and names the fix |
 

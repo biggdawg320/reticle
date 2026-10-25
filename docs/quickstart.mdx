@@ -38,7 +38,7 @@ irm https://raw.githubusercontent.com/reticlehq/reticle/main/install/install.ps1
 
 This puts `reticle` on your PATH and registers the MCP server with every coding agent it can reach: Claude Code, Cursor, Windsurf, VS Code, Zed, Gemini CLI, Copilot CLI, OpenCode, Antigravity, Warp, Kiro, Amazon Q, Cline, Roo Code, Amp, Continue and Factory Droid. Nothing is asked. It does not wire your app, and says so: that is step 2. Want a verdict first? Signed in, `reticle try <url>` drives a URL once in a window you watch.
 
-Codex CLI keeps a TOML config that Reticle will not rewrite itself, so with the `codex` command installed the installer registers Reticle through `codex mcp add`. Without it, the installer prints the lines to paste and the file to paste them into.
+Codex CLI keeps a TOML config. With the `codex` command installed, the installer registers Reticle through `codex mcp add`. Without it, the installer prints the lines to paste and the file to paste them into. Reticle then adds one line, `default_tools_approval_mode = "approve"`, under `[mcp_servers.reticle]` in `~/.codex/config.toml`. This line approves Reticle's own tools, so Codex does not ask before each call. Reticle changes no other line, and it keeps a mode that you set. To undo it, change that line to `default_tools_approval_mode = "prompt"`. Reticle does not change a mode that is already there.
 
 <Note>
   **Run this before opening your agent, and there is nothing to restart.** A coding agent reads its
