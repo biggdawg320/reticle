@@ -2956,11 +2956,6 @@
       "count": 1
     }
   },
-  "src/portal/session/dev-server/dev-server-probe.test.ts": {
-    "curly": {
-      "count": 3
-    }
-  },
   "src/portal/session/dev-server/dev-server-probe.ts": {
     "curly": {
       "count": 2
@@ -3098,9 +3093,6 @@
     }
   },
   "src/portal/session/no-session-watch.ts": {
-    "curly": {
-      "count": 23
-    },
     "no-nested-ternary": {
       "count": 2
     }

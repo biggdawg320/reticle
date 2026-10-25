@@ -32,6 +32,8 @@ interface NextActionFacts {
   everConnected: boolean;
   initialized: boolean;
   listening: readonly number[];
+  /** Scanned ports that serve a page from a process that cannot be tied to this project. */
+  otherListeners?: readonly number[];
   dev: DevCommand | undefined;
   /**
    * File-existence predicate for the project root, pure for testing.
@@ -193,6 +195,21 @@ export function zeroInstallLease(url: string | undefined): string {
 /** Nothing here says this project was ever wired: no config, no recorded connection, no session. */
 function neverWired(facts: NextActionFacts): boolean {
   return !facts.initialized && true !== facts.previouslyConnected && !facts.everConnected;
+}
+
+/**
+ * The start advice's first claim when no port is this project's. A scan that heard a page it could
+ * not tie to this project says so, because "nothing is listening" is then false.
+ */
+function notThisProject(others: readonly number[] | undefined): string {
+  if (others === undefined || 0 === others.length) {
+    return 'nothing is listening on the ports Reticle scans, so the app is probably not running — ';
+  }
+  const named = others.map((port) => `:${String(port)}`).join(', ');
+  return (
+    `${named} serves a page, but its process does not run in this project's folder, so this app ` +
+    `is probably not running — if one of them IS this app, open it instead of starting a second one, `
+  );
 }
 
 export function nextActionFor(facts: NextActionFacts): NoSessionNextAction {
@@ -362,7 +379,7 @@ export function nextActionFor(facts: NextActionFacts): NoSessionNextAction {
         : ` The session that was on ${redactUrl(stopped.url)} is gone and nothing listens there now.`;
     const notRunning = departedPortIsGone
       ? "nothing answers on the port this project's app was last on, so the app is probably not running — "
-      : 'nothing is listening on the ports Reticle scans, so the app is probably not running — ';
+      : notThisProject(facts.otherListeners);
     if (dev === undefined) {
       if (facts.exists !== undefined && !facts.exists('package.json')) {
         const ecosystem = detectNonJsEcosystem(facts.exists);

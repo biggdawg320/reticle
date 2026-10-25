@@ -58,7 +58,7 @@ function real(path: string): string {
 const inside = (c: string, p: string): boolean => c === p || c.startsWith(`${p}${sep}`);
 
 /** Compared both as written and with links resolved: either spelling may be the one lsof used. */
-function within(child: string | undefined, parent: string): boolean {
+export function within(child: string | undefined, parent: string): boolean {
   if (child === undefined) return false;
   return inside(resolve(child), resolve(parent)) || inside(real(child), real(parent));
 }
