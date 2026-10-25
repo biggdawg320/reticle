@@ -234,6 +234,11 @@ export function setEpisodeLogEnabled(enabled: boolean): void {
   enabledInDaemon = enabled;
 }
 
+/** Wait until every queued line of every open episode is on the disk. */
+export async function flushEpisodeLogs(): Promise<void> {
+  await Promise.all([...open.values()].map((log) => log.flush()));
+}
+
 /** Append one call to its episode. The entry point the tool dispatcher uses. */
 export function recordEpisodeCall(
   root: string,

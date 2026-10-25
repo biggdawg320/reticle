@@ -5,10 +5,10 @@
  * act/navigate/assert actions), with a bounded effect summary and never the result it was told. A
  * read, its answer, and every call made before a tab connected were gone once the agent compacted.
  */
-import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { delimiter, join } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EventType, ReticleDir, ReticleTool } from '@reticlehq/core';
 import { createFakeSession } from '@/portal/session/fake-session.js';
 import type { SessionManager } from '@/portal/session/session-manager.js';
@@ -21,14 +21,32 @@ import { createNodeFileSystem } from '@/memory/project/fs/fs-port.js';
 import {
   EpisodeRecordKind,
   episodePath,
+  flushEpisodeLogs,
   setEpisodeLogEnabled,
 } from '@/memory/journal/episode-log.js';
 import type { ToolDef, ToolDeps } from './tools.js';
 import { runTool } from './invoke-tool.js';
 import { noteAgentSession } from '@/hooks/coding-agents.js';
 
+/**
+ * A `git` that answers slowly, first on the PATH. The first episode line waits on git, and on
+ * Windows a git process takes longer to start than the fixed wait this test used to read after.
+ * Windows does not run a file with no extension, so there the real git is used.
+ */
+function slowGitFirstOnPath(): void {
+  const bin = mkdtempSync(join(tmpdir(), 'slow-git-'));
+  writeFileSync(join(bin, 'git'), '#!/bin/sh\nsleep 0.3\nexit 1\n');
+  chmodSync(join(bin, 'git'), 0o755);
+  vi.stubEnv('PATH', `${bin}${delimiter}${process.env['PATH'] ?? ''}`);
+}
+
 describe('the episode log at the dispatcher', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('keeps the call, its full result, its tab, and the events it caused', async () => {
+    slowGitFirstOnPath();
     const root = join(mkdtempSync(join(tmpdir(), 'dispatch-episode-')), ReticleDir.ROOT);
     mkdirSync(root, { recursive: true });
     const tab = createFakeSession({}, { sessionId: 'tab-1', url: 'http://localhost:5173/' });
@@ -69,8 +87,8 @@ describe('the episode log at the dispatcher', () => {
     setEpisodeLogEnabled(true);
     await runTool(tool, deps, { selector: 'button' });
     setEpisodeLogEnabled(false);
-    // The writes are queued off the call's path; give the queue a turn.
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // The writes are queued off the call's path. Wait until they reach the disk.
+    await flushEpisodeLogs();
 
     const lines = readFileSync(episodePath(root, 'conn-1'), 'utf8')
       .trim()
