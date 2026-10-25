@@ -666,7 +666,7 @@ export function startMcpProxy(
         }
         settled = true;
         if (first && !responded && boot !== undefined) {
-          bootFailed(); // The start waited until the daemon served, so the daemon is gone.
+          bootFailed(); // The start is done, so nothing is still booting on this port.
           return;
         }
         if (first && !responded) {
@@ -718,23 +718,22 @@ export function startMcpProxy(
     if (boot === undefined) {
       connect(true);
     } else {
-      // Dial when the start is done, at the port it settled on.
+      // Dial when the start is done, at the port it settled on. A failed start dials too, because
+      // only the dial can tell the two cases apart. A refused dial means no daemon: see bootFailed.
+      // A process that accepts and then drops the stream is a daemon that flaps, and the normal
+      // retry loop backs off from it and logs each retry.
       void boot.ready
         .catch(() => undefined)
         .then((resolved) => {
-          if ('number' === typeof resolved) {
-            port = resolved;
-            connect(true);
-          } else {
-            bootFailed();
-          }
+          port = resolved ?? port;
+          connect(true);
         });
     }
 
     /**
-     * No daemon came from the start, for example because it died before or just after it served.
-     * The first-connect retry never starts a daemon, so a queued call waited until the queue
-     * expired. Go dormant, and wake now for a request that waits.
+     * The first dial after the start was refused, so no daemon is there. For example, it died
+     * before or just after it served. The first-connect retry never starts a daemon, so a queued
+     * call waited until the queue expired. Go dormant, and wake now for a request that waits.
      */
     function bootFailed(): void {
       dormant = true;

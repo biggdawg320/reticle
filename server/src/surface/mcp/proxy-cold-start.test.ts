@@ -13,12 +13,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { LOOPBACK_HOST, MCP_SSE_PATH, STATUS_PATH } from '@reticlehq/core';
-import { startMcpProxy } from './mcp-proxy.js';
+import { proxyLogPath, startMcpProxy } from './mcp-proxy.js';
 import { createMcpServer, staticToolCatalog } from './mcp.js';
 import {
   TOOL_SURFACE,
@@ -51,6 +51,8 @@ describe('the tool list the proxy serves before the daemon is up', () => {
     },
   );
 });
+
+const RECONNECTING_EVENT = 'reticle_mcp_proxy_reconnecting';
 
 interface Reply {
   id?: unknown;
@@ -194,6 +196,46 @@ describe('a client that starts before the daemon is up', () => {
     },
     30_000,
   );
+
+  // The start found no daemon, but a process accepts on the port and then drops the stream. That is
+  // a daemon that flaps, not a port with nothing on it. The proxy went dormant without one dial, so
+  // it never retried and never logged a retry.
+  it('retries with backoff, and logs each retry, when the start fails but the port accepts', async () => {
+    attachClient();
+    const flapper = http.createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/event-stream' }).end();
+    });
+    await new Promise<void>((resolve) => flapper.listen(0, LOOPBACK_HOST, resolve));
+    cleanups.push(() => new Promise<void>((done) => flapper.close(() => done())));
+    let wakes = 0;
+    const port = (flapper.address() as AddressInfo).port;
+    void startMcpProxy(
+      port,
+      () => {
+        wakes++;
+        return Promise.resolve(undefined);
+      },
+      undefined,
+      undefined,
+      {
+        ready: Promise.resolve(),
+        spawning: Promise.resolve(),
+        tools: async () => staticToolCatalog(resolveToolSurface()),
+      },
+    ).catch(() => undefined);
+
+    await vi.waitFor(
+      () =>
+        expect(
+          (existsSync(proxyLogPath()) ? readFileSync(proxyLogPath(), 'utf8') : '')
+            .split('\n')
+            .filter((line) => line.includes(RECONNECTING_EVENT))
+            .map((line) => (JSON.parse(line) as { port?: unknown }).port),
+        ).toContain(port),
+      { timeout: 5_000 },
+    );
+    expect(wakes, 'a daemon that is there is retried, not replaced').toBe(0);
+  });
 
   it('gets initialize and the tool list at once, and its tool call waits for the daemon', async () => {
     const { send, replies } = attachClient();
