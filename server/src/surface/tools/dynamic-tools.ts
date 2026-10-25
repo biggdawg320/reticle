@@ -220,6 +220,7 @@ export function buildDynamicTools(
       .array(z.string())
       .optional()
       .describe('Tool names to load full params for. Omit to list all tools with summaries.'),
+    name: z.string().optional().describe('One tool name: the same as names:[name].'),
   };
   const reticleTools: ToolDef = {
     name: ReticleTool.TOOLS,
@@ -254,9 +255,12 @@ export function buildDynamicTools(
           hint: TOOLS_ARG_HINT,
         });
       }
-      const names = Array.isArray(args['names'])
+      const listed = Array.isArray(args['names'])
         ? (args['names'] as unknown[]).filter((n): n is string => 'string' === typeof n)
         : undefined;
+      const one = 'string' === typeof args['name'] ? [args['name']] : [];
+      const names =
+        listed === undefined && 0 === one.length ? undefined : [...(listed ?? []), ...one];
       if (names === undefined || 0 === names.length) {
         // The COUNT is stated, not just implied by the array length. An agent that can see 18 tools
         // has no way to know whether that is all of them; being told the registry holds more is what

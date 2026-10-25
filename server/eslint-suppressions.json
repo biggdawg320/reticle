@@ -3473,11 +3473,6 @@
       "count": 1
     }
   },
-  "src/surface/tools/act/act-target.ts": {
-    "curly": {
-      "count": 4
-    }
-  },
   "src/surface/tools/act/act-view.ts": {
     "curly": {
       "count": 6

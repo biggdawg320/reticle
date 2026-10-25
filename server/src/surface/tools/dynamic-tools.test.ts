@@ -58,6 +58,17 @@ describe('buildDynamicTools — the dynamic profile meta-tools', () => {
     expect((listed as { error?: string }).error).toBeUndefined();
   });
 
+  /*
+   * An agent asked for one tool as `{ name: "…" }` and was refused, which cost it a second call.
+   * `name` is one tool name, the same as `names: [name]`.
+   */
+  it('reticle_tools takes one tool name as `name`, the same as `names`', async () => {
+    const discover = buildDynamicTools(fakeTools).find((t) => t.name === ReticleTool.TOOLS);
+    const one = await discover?.handler(NO_DEPS, { name: 'reticle_alpha' });
+    expect(one).toEqual(await discover?.handler(NO_DEPS, { names: ['reticle_alpha'] }));
+    expect(Object.keys(discover?.inputSchema ?? {})).toContain('name');
+  });
+
   it('reticle_tools with names loads full params for known tools and flags unknown ones', async () => {
     const tools = buildDynamicTools(fakeTools);
     const discover = tools.find((t) => t.name === ReticleTool.TOOLS);
