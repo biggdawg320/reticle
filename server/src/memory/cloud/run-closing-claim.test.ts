@@ -15,13 +15,20 @@ import { diskSource } from './sync-disk.js';
 
 const jsonl = (lines: unknown[]): string => lines.map((l) => JSON.stringify(l)).join('\n');
 
-function project(opts: { shareRequests?: boolean; context?: Record<string, unknown> } = {}) {
+function project(
+  opts: {
+    shareRequests?: boolean;
+    promptCapture?: boolean;
+    context?: Record<string, unknown>;
+  } = {},
+) {
   const dir = mkdtempSync(join(tmpdir(), 'closing-claim-'));
   writeFileSync(
     join(dir, '.reticle.json'),
     JSON.stringify({
       projectId: 'p',
       ...(opts.shareRequests === undefined ? {} : { shareRequests: opts.shareRequests }),
+      ...(opts.promptCapture === undefined ? {} : { promptCapture: opts.promptCapture }),
     }),
   );
   const root = join(dir, ReticleDir.ROOT);
@@ -64,8 +71,8 @@ function project(opts: { shareRequests?: boolean; context?: Record<string, unkno
   return root;
 }
 
-const sent = (root: string): Record<string, unknown> =>
-  diskSource(root).runs()[0]?.payload as Record<string, unknown>;
+const sent = (root: string, env: NodeJS.ProcessEnv = {}): Record<string, unknown> =>
+  diskSource(root, env).runs()[0]?.payload as Record<string, unknown>;
 
 describe('the run as it is synced', () => {
   it("carries the agent's model and the claim that closed the run's turn", () => {
@@ -90,6 +97,26 @@ describe('the run as it is synced', () => {
     expect(out['context']).toBeUndefined();
     // The model is not the user's words: it still says which agent ran.
     expect((out['agent'] as Record<string, unknown>)['model']).toBe('claude-x');
+  });
+
+  /*
+   * The init notice says one switch stops all agent capture. Files the hooks kept before the
+   * switch went off stayed on disk, and the sync still read them into every run it sent.
+   */
+  describe('when agent capture is off', () => {
+    const shared = { request: 'make promo work', statements: [], shared: true };
+
+    it('sends no model, no closing message and no prompt for the project setting', () => {
+      const out = sent(project({ promptCapture: false, context: shared }));
+      expect((out['agent'] as Record<string, unknown>)['model']).toBeUndefined();
+      expect(out['context']).toBeUndefined();
+    });
+
+    it('sends no model, no closing message and no prompt for the machine setting', () => {
+      const out = sent(project({ context: shared }), { RETICLE_PROMPT_CAPTURE: '0' });
+      expect((out['agent'] as Record<string, unknown>)['model']).toBeUndefined();
+      expect(out['context']).toBeUndefined();
+    });
   });
 
   it('is kept by the prompt context schema, so a rewrite of the run does not drop it', () => {

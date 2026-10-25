@@ -12,7 +12,11 @@
  */
 import { shareableRun } from '@reticlehq/core/artifacts';
 import { agentContextFor } from '@/memory/journal/episode-log.js';
-import { sharesRequests } from '@/memory/intent/record-request.js';
+import {
+  agentCaptureOff,
+  agentCaptureOffIn,
+  sharesRequests,
+} from '@/memory/intent/record-request.js';
 import {
   existsSync,
   mkdirSync,
@@ -272,21 +276,38 @@ function withAgentContext(payload: unknown, reticleRoot: string): unknown {
   return out;
 }
 
+/**
+ * A run with nothing the agent hooks kept: no prompt context. Agent capture is off, so the files
+ * that the hooks wrote before the switch went off do not leave the machine either.
+ */
+function withoutAgentCapture(payload: unknown): unknown {
+  if ('object' !== typeof payload || null === payload) {
+    return payload;
+  }
+  const { context: _context, ...rest } = payload as { context?: unknown };
+  return rest;
+}
+
 /** What the cycle reads, backed by a real `.reticle` directory. */
-export function diskSource(reticleRoot: string): SyncSource {
+export function diskSource(reticleRoot: string, env: NodeJS.ProcessEnv = process.env): SyncSource {
   return {
-    runs: () =>
-      readJsonDir(join(reticleRoot, ReticleDir.RUNS_SUBDIR))
-        .map((payload) => {
-          const id = (payload as { runId?: unknown } | null)?.runId;
-          // The prompt context leaves the machine only when the project opted in.
-          return 'string' === typeof id
-            ? { runId: id, payload: shareableRun(withAgentContext(payload, reticleRoot)) }
-            : undefined;
-        })
-        // A run artifact with no id cannot be diffed against the server's list, so sending it would
-        // mean re-sending it every cycle forever. Dropped rather than uploaded repeatedly.
-        .filter((r): r is { runId: string; payload: unknown } => r !== undefined),
+    runs: () => {
+      const captureOff = agentCaptureOff(env) || agentCaptureOffIn(dirname(reticleRoot));
+      return (
+        readJsonDir(join(reticleRoot, ReticleDir.RUNS_SUBDIR))
+          .map((payload) => {
+            const id = (payload as { runId?: unknown } | null)?.runId;
+            // The prompt context leaves the machine only when the project opted in.
+            const sent = captureOff
+              ? withoutAgentCapture(payload)
+              : shareableRun(withAgentContext(payload, reticleRoot));
+            return 'string' === typeof id ? { runId: id, payload: sent } : undefined;
+          })
+          // A run artifact with no id cannot be diffed against the server's list, so sending it
+          // would mean re-sending it every cycle forever. Dropped rather than uploaded repeatedly.
+          .filter((r): r is { runId: string; payload: unknown } => r !== undefined)
+      );
+    },
     flows: () => readFlows(reticleRoot),
     // Flat directory of `<id>.json`, which is exactly what readJsonDir walks — unlike flows, which
     // sit one level deeper under the app's project id.

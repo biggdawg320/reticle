@@ -28,17 +28,19 @@ import {
   writeSync,
 } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
-import { ReticleDir, ReticleEnv } from '@reticlehq/core';
+import { ReticleDir } from '@reticlehq/core';
 import { PromptHookAgent } from '@reticlehq/init';
 import { PromptContextSchema } from '@reticlehq/core/artifacts';
 import { discoverProjectConfigs } from '@/command/cli/config/config-discovery.js';
 import {
   MAX_REQUEST,
-  projectSetting,
+  agentCaptureOff,
+  agentCaptureOffIn,
   promptContextFor,
   redactSecrets,
   sharesRequests,
 } from '@/memory/intent/record-request.js';
+export { agentCaptureOff, agentCaptureOffIn } from '@/memory/intent/record-request.js';
 import { readTextOrUndefined } from '@/memory/project/fs/fs-port.js';
 import {
   WORKSPACE_GITIGNORE,
@@ -73,7 +75,6 @@ const HARNESS_TAGS: readonly string[] = [
   'user-prompt-submit-hook',
 ];
 const HARNESS_PROMPT = new RegExp(`^<(?:${HARNESS_TAGS.join('|')})[\\s>]`);
-const OFF_VALUES: ReadonlySet<string> = new Set(['0', 'false', 'off', 'no']);
 /** Where each agent names its project when the payload does not. */
 const PROJECT_DIR_ENV = ['CLAUDE_PROJECT_DIR', 'CURSOR_PROJECT_DIR', 'GEMINI_PROJECT_DIR'];
 const JSON_INDENT = 2;
@@ -145,19 +146,6 @@ export function captureRoots(cwd: string): string[] {
 function isWithin(outer: string, inner: string): boolean {
   const rel = relative(outer, inner);
   return '' === rel || (!rel.startsWith('..') && !isAbsolute(rel));
-}
-
-/**
- * The one switch for everything the agent hooks keep: prompts, tool calls, the model and the
- * closing message. `RETICLE_PROMPT_CAPTURE=0` stops it on this machine.
- */
-export function agentCaptureOff(env: NodeJS.ProcessEnv): boolean {
-  return OFF_VALUES.has((env[ReticleEnv.PROMPT_CAPTURE] ?? '').toLowerCase());
-}
-
-/** The same switch for one project: `"promptCapture": false` in its `.reticle.json`. */
-export function agentCaptureOffIn(projectDir: string): boolean {
-  return false === projectSetting(projectDir, 'promptCapture');
 }
 
 interface CaptureIo {
