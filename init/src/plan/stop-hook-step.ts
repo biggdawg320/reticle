@@ -163,19 +163,22 @@ export function claudeSettingsSteps(
 /**
  * The prompt-capture hook, for each agent found. On by default, because the request is what a
  * verdict is checked against and an agent forgets to relay it. `--no-prompt-capture` skips it;
- * `"promptCapture": false` in `.reticle.json` keeps the hook from writing; `reticle hook uninstall`
+ * `"promptCapture": false` in `.reticle.json` keeps every agent hook from writing; `reticle hook uninstall`
  * removes exactly what this added.
  */
 const PROMPT_TITLE = 'Prompt capture';
 const NOTICE_TARGET = '.reticle/request.json';
 
-/** The consent line. Names where prompts go and every way to switch it off. */
+/**
+ * The consent line. Names all that the agent hooks keep, what leaves with a linked run and under
+ * which setting, and the one switch that stops all of it.
+ */
 export const PROMPT_CAPTURE_NOTICE =
-  'Each prompt you send is saved, with secrets removed, to .reticle/ in this project. ' +
-  'When the project is linked (reticle connect, or RETICLE_API_KEY in the environment), it goes with its runs to your own workspace. ' +
-  'Keep prompts on this machine: "shareRequests": false in .reticle.json. ' +
-  'Turn off capture: --no-prompt-capture, "promptCapture": false in .reticle.json, RETICLE_PROMPT_CAPTURE=0, or `reticle hook uninstall`. ' +
-  'Stop background sync: "backgroundSync": false in .reticle.json, or RETICLE_BACKGROUND_SYNC=0.';
+  'Reticle keeps these in .reticle/ in this project, with secrets removed: each prompt you send, the tool calls your agent makes (commands, file edits, web calls), its model, and its closing message for each turn. ' +
+  'Tool calls stay on this machine. ' +
+  'When the project is linked (reticle connect, or RETICLE_API_KEY in the environment), each synced run sends the model to your own workspace. ' +
+  'Your prompts and the closing messages also go there with the runs, and to the Harness, unless "shareRequests": false is in .reticle.json. ' +
+  'Stop all of it: "promptCapture": false in .reticle.json, or RETICLE_PROMPT_CAPTURE=0 on this machine.';
 
 export function promptHookStep(target: PromptHookTarget): Step {
   const { spec, path, existing, bin } = target;
@@ -202,7 +205,7 @@ export function promptHookStep(target: PromptHookTarget): Step {
     title,
     target: path,
     status: StepStatus.APPLY,
-    detail: `save each prompt to .reticle/ before the agent reads it; never blocks the prompt${then}`,
+    detail: `save each prompt, tool call, model and closing message to .reticle/; never blocks the agent${then}`,
     write: { path, content: merged.content, expect: [promptHookCommand(spec.id)] },
   };
 }

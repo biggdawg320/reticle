@@ -233,7 +233,8 @@ const COMMANDS: readonly CommandDoc[] = [
     name: 'hook',
     synopsis:
       'hook [install|uninstall|status|prompt --agent <id>|tool --agent <id>|export --structure]',
-    summary: 'Save each prompt you send to .reticle/, through your agent hooks',
+    summary:
+      'Save prompts, tool calls, the model and closing messages to .reticle/, through your agent hooks',
     group: HelpGroup.MORE,
     detail:
       '  hook install      add the prompt-capture hook for the agents used here\n' +
