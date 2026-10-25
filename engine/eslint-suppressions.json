@@ -364,11 +364,6 @@
       "count": 1
     }
   },
-  "src/window/adversary.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
   "src/window/ambient.test.ts": {
     "curly": {
       "count": 1

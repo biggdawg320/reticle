@@ -64,11 +64,6 @@
       "count": 1
     }
   },
-  "src/artifacts/prompt-context.ts": {
-    "curly": {
-      "count": 3
-    }
-  },
   "src/capabilities.test.ts": {
     "curly": {
       "count": 1
@@ -227,19 +222,9 @@
       "count": 7
     }
   },
-  "src/verdict/verification-run.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
   "src/wire/channel.ts": {
     "curly": {
       "count": 2
-    }
-  },
-  "src/wire/constants/constants.ts": {
-    "curly": {
-      "count": 3
     }
   },
   "src/wire/desktop-contract.test.ts": {
@@ -270,11 +255,6 @@
   "src/wire/platform-link.test.ts": {
     "curly": {
       "count": 1
-    }
-  },
-  "src/wire/platform-link.ts": {
-    "curly": {
-      "count": 6
     }
   },
   "src/wire/production/activation-ticket.ts": {

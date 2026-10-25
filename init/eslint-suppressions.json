@@ -108,9 +108,6 @@
     }
   },
   "src/gather-plan-input.ts": {
-    "curly": {
-      "count": 16
-    },
     "no-nested-ternary": {
       "count": 1
     }
@@ -280,9 +277,6 @@
     }
   },
   "src/plan/plan.ts": {
-    "curly": {
-      "count": 19
-    },
     "no-nested-ternary": {
       "count": 1
     }
@@ -300,11 +294,6 @@
   "src/plan/prompt-hook-step.test.ts": {
     "curly": {
       "count": 1
-    }
-  },
-  "src/plan/stop-hook-step.ts": {
-    "curly": {
-      "count": 2
     }
   },
   "src/project/agent-rules.test.ts": {
@@ -365,16 +354,6 @@
   "src/register/mcp.ts": {
     "curly": {
       "count": 5
-    }
-  },
-  "src/register/prompt-hooks.test.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
-  "src/register/prompt-hooks.ts": {
-    "curly": {
-      "count": 9
     }
   },
   "src/register/windows-quote.test.ts": {

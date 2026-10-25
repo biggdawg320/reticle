@@ -1,3 +1,4 @@
+import { agentSessionInEnv } from '@/command/version/peer-announce.js';
 import { applyHarnessSwitch, harnessConfigsByRoot } from '@/memory/cloud/harness-config.js';
 import { coveragePercents } from './features/exhaust/ledger.js';
 import { agentWiring } from './portal/session/zero-install-first-call.js';
@@ -308,8 +309,9 @@ export async function start(options: StartOptions = {}): Promise<RunningServer> 
     bridge.attachSessionCreate((session) => {
       const leasedIds = leasePool.leasedSessionIds();
       const leasedProjects = leasedIds.map((id) => bridge.sessions.get(id)?.projectId);
-      if (shouldGreetWithLeaseNotice(session, leasedIds, leasedProjects))
+      if (shouldGreetWithLeaseNotice(session, leasedIds, leasedProjects)) {
         session.pushNarration(AGENT_ALREADY_DRIVING_ELSEWHERE);
+      }
     });
     const deps = {
       sessions: bridge.sessions,
@@ -346,8 +348,10 @@ export async function start(options: StartOptions = {}): Promise<RunningServer> 
       },
       log,
     );
+    // Over stdio this process IS the agent's MCP server: the agent's session is in its environment.
+    const agentSession = agentSessionInEnv(process.env);
     const server = createMcpServer(
-      toolDeps,
+      agentSession === undefined ? toolDeps : { ...toolDeps, agentSession },
       profile,
       instructionStateAt(port, bridge.sessions.count()),
     );
@@ -420,7 +424,9 @@ export async function startDaemon(options: StartOptions = {}): Promise<RunningSe
     for (const session of bridge.sessions.all()) {
       const root =
         session.artifactRoot ?? options.reticleRoot ?? join(process.cwd(), ReticleDir.ROOT);
-      if ((only ?? root) === root) pushIfMoved(session, () => impactSnapshot(root), ifChanged);
+      if ((only ?? root) === root) {
+        pushIfMoved(session, () => impactSnapshot(root), ifChanged);
+      }
     }
   };
   pushHarnessConfig = repaint;
@@ -437,7 +443,9 @@ export async function startDaemon(options: StartOptions = {}): Promise<RunningSe
   // the requested `--http-port` instead of silently ignoring the flag (#687).
   shared.attachStatus((held) => {
     // `init` holds the daemon it is waiting on, so the idle rule cannot shut it down mid-wait.
-    if (held) noteSetupHold(Date.now());
+    if (held) {
+      noteSetupHold(Date.now());
+    }
     const tabs = bridge.sessions.all();
     return statusPayload(
       bridge.sessions.count(),
@@ -542,8 +550,9 @@ export async function startDaemon(options: StartOptions = {}): Promise<RunningSe
   syncNudge.run = (): void => cloudSync.nudge();
   // `syncNow`, not `nudge` (a cycle soon): somebody is watching the button. Never awaited.
   bridge.attachSyncRequest(() => void cloudSync.syncNow());
-  if (options.hudSignIn !== undefined)
+  if (options.hudSignIn !== undefined) {
     bridge.attachSigninRequest(options.hudSignIn(repaint, projectLinkOnly(options.hudLink)));
+  }
   // Logout and link run in another process: repaint when their files change, the rest on a timer.
   const accountFiles = watchAccountFiles(repaint, undefined, () => repaint(undefined, true));
   accountFiles.watch(join(homedir(), ReticleDir.ROOT, SESSION_FILE));
@@ -646,7 +655,9 @@ export async function startDaemon(options: StartOptions = {}): Promise<RunningSe
   // verdict into the same activity log they watch the agent in. The page animates via the normal
   // replay path, so they see it re-drive and the ✓/⚠/✗ land.
   bridge.attachReplay((sessionId, flowName) => {
-    if (bridge.sessions.get(sessionId) === undefined) return;
+    if (bridge.sessions.get(sessionId) === undefined) {
+      return;
+    }
     void replayFromHud(effectiveDeps, (id) => bridge.sessions.get(id), sessionId, flowName);
   });
   // On connect, hand the panel the replayable flows so it can render the ▶ list. Scoped to the
@@ -721,7 +732,9 @@ export async function startDaemon(options: StartOptions = {}): Promise<RunningSe
       reaper.stop();
       await cleanupCaptureDirectories();
       const vh = verifyHttp;
-      if (vh !== undefined) await new Promise<void>((resolve) => vh.server.close(() => resolve()));
+      if (vh !== undefined) {
+        await new Promise<void>((resolve) => vh.server.close(() => resolve()));
+      }
       leaseReaper.stop();
       chatDrives.stop();
       accountFiles.close();

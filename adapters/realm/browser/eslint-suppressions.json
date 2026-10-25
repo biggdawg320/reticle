@@ -151,9 +151,6 @@
     }
   },
   "src/commands/commands.ts": {
-    "curly": {
-      "count": 11
-    },
     "no-nested-ternary": {
       "count": 1
     }
@@ -366,11 +363,6 @@
   "src/observers/dialogs.ts": {
     "curly": {
       "count": 3
-    }
-  },
-  "src/observers/dom.ts": {
-    "curly": {
-      "count": 16
     }
   },
   "src/observers/download.test.ts": {

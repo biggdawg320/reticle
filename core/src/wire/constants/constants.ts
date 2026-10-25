@@ -141,7 +141,9 @@ export { ReticleEnv } from './reticle-env.js';
  */
 export function apiKeyFrom(env: Record<string, string | undefined>): string | undefined {
   const current = env[ReticleEnv.API_KEY];
-  if (current !== undefined && 0 < current.length) return current;
+  if (current !== undefined && 0 < current.length) {
+    return current;
+  }
   const legacy = env[ReticleEnv.CLOUD_KEY];
   return legacy !== undefined && 0 < legacy.length ? legacy : undefined;
 }
@@ -149,7 +151,9 @@ export function apiKeyFrom(env: Record<string, string | undefined>): string | un
 /** The platform URL, under either name — one function so no caller forgets the second. */
 export function cloudUrlFrom(env: Record<string, string | undefined>): string | undefined {
   const canonical = env[ReticleEnv.CLOUD_URL];
-  if (canonical !== undefined && 0 < canonical.length) return canonical;
+  if (canonical !== undefined && 0 < canonical.length) {
+    return canonical;
+  }
   const short = env[ReticleEnv.URL];
   return short !== undefined && 0 < short.length ? short : undefined;
 }
@@ -161,7 +165,9 @@ export const DEFAULT_PLATFORM_URL = 'https://app.reticle.sh';
 export function platformUrlFrom(env: Record<string, string | undefined>): string {
   // A loop, not /\/+$/: that pattern is polynomial on a value made of many slashes.
   let url = cloudUrlFrom(env) ?? DEFAULT_PLATFORM_URL;
-  while (url.endsWith('/')) url = url.slice(0, -1);
+  while (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
   return url;
 }
 
@@ -337,6 +343,11 @@ export const ReticleDir = {
   PLANS_SUBDIR: 'plans',
   /** durable causal journal —.reticle/sessions/<id>/{events,actions}.jsonl (the substrate). */
   SESSIONS_SUBDIR: 'sessions',
+  /**
+   * Every tool call an agent made, in full, with what it did to the page —
+   * .reticle/episodes/<connection>.jsonl. Local evidence: never committed, never sent.
+   */
+  EPISODES_SUBDIR: 'episodes',
   /** append-only event ledger inside a session dir (one ReticleEvent per line). */
   JOURNAL_EVENTS_FILE: 'events.jsonl',
   /** append-only action ledger inside a session dir (one JournalAction per line). */
@@ -495,8 +506,8 @@ export type ContractReadError = (typeof ContractReadError)[keyof typeof Contract
 
 // The event vocabulary lives beside this file and is re-exported here, so `EventType` stays one
 // import path for every consumer. See event-types.ts for why it moved.
-import { EventType } from './event-types.js';
-export { EventType };
+import { CanvasTrigger, EventType, MediaEvent } from './event-types.js';
+export { CanvasTrigger, EventType, MediaEvent };
 
 /** Bounds for the per-session ring buffer. */
 export const RING_BUFFER_DEFAULTS = {

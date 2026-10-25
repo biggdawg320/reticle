@@ -24,11 +24,6 @@
       "count": 1
     }
   },
-  "src/command/cli.ts": {
-    "curly": {
-      "count": 16
-    }
-  },
   "src/command/cli/adhoc-suite.ts": {
     "curly": {
       "count": 8
@@ -111,11 +106,6 @@
   "src/command/cli/cli-update-commands.ts": {
     "curly": {
       "count": 5
-    }
-  },
-  "src/command/cli/cli-usage.ts": {
-    "curly": {
-      "count": 3
     }
   },
   "src/command/cli/cli-verify.ts": {
@@ -245,21 +235,6 @@
   "src/command/cli/hook/hook-command.test.ts": {
     "curly": {
       "count": 3
-    }
-  },
-  "src/command/cli/hook/hook-command.ts": {
-    "curly": {
-      "count": 7
-    }
-  },
-  "src/command/cli/hook/prompt-hook.test.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
-  "src/command/cli/hook/prompt-hook.ts": {
-    "curly": {
-      "count": 10
     }
   },
   "src/command/cli/keep-alive-turn.test.ts": {
@@ -806,11 +781,6 @@
       "count": 1
     }
   },
-  "src/directory-reach.test.ts": {
-    "curly": {
-      "count": 2
-    }
-  },
   "src/features/crawl/crawl-dangerous-reveal.test.ts": {
     "curly": {
       "count": 1
@@ -996,16 +966,6 @@
   "src/features/harness/platform/platform-drives.ts": {
     "curly": {
       "count": 3
-    }
-  },
-  "src/features/harness/platform/remote-drive.test.ts": {
-    "curly": {
-      "count": 2
-    }
-  },
-  "src/features/harness/platform/remote-drive.ts": {
-    "curly": {
-      "count": 26
     }
   },
   "src/features/harness/platform/script.test.ts": {
@@ -1229,11 +1189,6 @@
       "count": 1
     }
   },
-  "src/guards/harness/flat-directories-are-recorded.test.ts": {
-    "curly": {
-      "count": 3
-    }
-  },
   "src/guards/harness/harness-kills-only-listeners.test.ts": {
     "curly": {
       "count": 4
@@ -1324,11 +1279,6 @@
       "count": 3
     }
   },
-  "src/hooks/coding-agents.ts": {
-    "curly": {
-      "count": 3
-    }
-  },
   "src/hooks/driven-by.ts": {
     "curly": {
       "count": 2
@@ -1377,11 +1327,6 @@
   "src/index.mcp-live-session.test.ts": {
     "curly": {
       "count": 5
-    }
-  },
-  "src/index.ts": {
-    "curly": {
-      "count": 6
     }
   },
   "src/judgement/capsule/capsule-store.ts": {
@@ -1498,11 +1443,6 @@
   "src/judgement/runs/artifact/run-store.test.ts": {
     "curly": {
       "count": 2
-    }
-  },
-  "src/judgement/runs/artifact/run-store.ts": {
-    "curly": {
-      "count": 29
     }
   },
   "src/judgement/runs/context-tools.test.ts": {
@@ -2155,9 +2095,6 @@
     }
   },
   "src/memory/cloud/cloud-config.ts": {
-    "curly": {
-      "count": 11
-    },
     "no-nested-ternary": {
       "count": 1
     }
@@ -2218,22 +2155,12 @@
       "count": 1
     }
   },
-  "src/memory/cloud/sync-daemon.ts": {
-    "curly": {
-      "count": 48
-    }
-  },
   "src/memory/cloud/sync-describe.ts": {
     "curly": {
       "count": 12
     },
     "no-nested-ternary": {
       "count": 2
-    }
-  },
-  "src/memory/cloud/sync-disk.ts": {
-    "curly": {
-      "count": 13
     }
   },
   "src/memory/cloud/sync-flow-conflict.test.ts": {
@@ -2416,11 +2343,6 @@
       "count": 4
     }
   },
-  "src/memory/journal/journal-recorder.ts": {
-    "curly": {
-      "count": 8
-    }
-  },
   "src/memory/journal/on-disk/retain-policy.ts": {
     "curly": {
       "count": 1
@@ -2499,11 +2421,6 @@
   "src/memory/project/artifact-root.ts": {
     "curly": {
       "count": 8
-    }
-  },
-  "src/memory/project/artifact-roots-complete.test.ts": {
-    "curly": {
-      "count": 1
     }
   },
   "src/memory/project/baselines.ts": {
@@ -2916,9 +2833,6 @@
     }
   },
   "src/portal/realm/web-realm.ts": {
-    "curly": {
-      "count": 13
-    },
     "no-nested-ternary": {
       "count": 1
     }
@@ -3275,11 +3189,6 @@
       "count": 2
     }
   },
-  "src/surface/http-server.ts": {
-    "curly": {
-      "count": 9
-    }
-  },
   "src/surface/mcp/attach-memory.ts": {
     "curly": {
       "count": 9
@@ -3315,19 +3224,9 @@
       "count": 3
     }
   },
-  "src/surface/mcp/mcp-proxy.ts": {
-    "curly": {
-      "count": 42
-    }
-  },
   "src/surface/mcp/mcp.test.ts": {
     "curly": {
       "count": 3
-    }
-  },
-  "src/surface/mcp/mcp.ts": {
-    "curly": {
-      "count": 9
     }
   },
   "src/surface/mcp/merged-name-dispatches.test.ts": {
@@ -3368,11 +3267,6 @@
   "src/surface/mcp/proxy-reconnect-fanout.test.ts": {
     "curly": {
       "count": 2
-    }
-  },
-  "src/surface/mcp/proxy/drive-calls.ts": {
-    "curly": {
-      "count": 4
     }
   },
   "src/surface/mcp/proxy/mcp-post-transport.test.ts": {
@@ -3989,9 +3883,6 @@
     }
   },
   "src/surface/tools/invoke-tool.ts": {
-    "curly": {
-      "count": 28
-    },
     "no-nested-ternary": {
       "count": 1
     }
@@ -4309,11 +4200,6 @@
       "count": 3
     }
   },
-  "src/surface/tools/tool-kit.ts": {
-    "curly": {
-      "count": 4
-    }
-  },
   "src/surface/tools/tool-surface.test.ts": {
     "curly": {
       "count": 8
@@ -4615,11 +4501,6 @@
   "src/trace.ts": {
     "curly": {
       "count": 3
-    }
-  },
-  "src/wire-journal.ts": {
-    "curly": {
-      "count": 1
     }
   },
   "src/workspace-packages.ts": {
