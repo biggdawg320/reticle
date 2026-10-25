@@ -17,7 +17,7 @@
  * Idempotent: a search is keyed by its item id, else by its line number (the transcript is
  * append-only), and a key already in the session file is skipped. Read-only on Codex's files.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { closeSync, fstatSync, openSync, readFileSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { redactSecrets } from '@/memory/intent/record-request.js';
@@ -192,19 +192,23 @@ export function newCodexSearches(searches: readonly Json[], sessionFile: string)
     return [];
   }
   const kept = new Set<unknown>();
-  if (existsSync(sessionFile)) {
-    for (const raw of readFileSync(sessionFile, 'utf8').split('\n')) {
-      if (!raw.includes(CODEX_TRANSCRIPT_SOURCE)) {
-        continue;
+  let text = '';
+  try {
+    text = readFileSync(sessionFile, 'utf8');
+  } catch {
+    // No session file yet: nothing is kept.
+  }
+  for (const raw of text.split('\n')) {
+    if (!raw.includes(CODEX_TRANSCRIPT_SOURCE)) {
+      continue;
+    }
+    try {
+      const line: unknown = JSON.parse(raw);
+      if (isObject(line)) {
+        kept.add(line['toolUseId']);
       }
-      try {
-        const line: unknown = JSON.parse(raw);
-        if (isObject(line)) {
-          kept.add(line['toolUseId']);
-        }
-      } catch {
-        // A torn line names nothing.
-      }
+    } catch {
+      // A torn line names nothing.
     }
   }
   return searches.filter((s) => !kept.has(s['toolUseId']));
@@ -212,9 +216,18 @@ export function newCodexSearches(searches: readonly Json[], sessionFile: string)
 
 /** The transcript's text, or undefined when it is missing or too large to read now. */
 export function readTranscript(path: string): string | undefined {
+  let fd: number;
   try {
-    return statSync(path).size > MAX_TRANSCRIPT_BYTES ? undefined : readFileSync(path, 'utf8');
+    fd = openSync(path, 'r');
   } catch {
     return undefined;
+  }
+  // One open file for the size and the read, so the file cannot change between the two.
+  try {
+    return fstatSync(fd).size > MAX_TRANSCRIPT_BYTES ? undefined : readFileSync(fd, 'utf8');
+  } catch {
+    return undefined;
+  } finally {
+    closeSync(fd);
   }
 }
