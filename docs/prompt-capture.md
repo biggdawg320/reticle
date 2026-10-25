@@ -54,7 +54,7 @@ The same config files also get hooks for the agent's own work: the shell command
 
 Cursor and Codex send the model with each call, and Windsurf sends it unless it is "Unknown". VS Code Copilot gets no tool hook.
 
-Each record goes to `.reticle/episodes/agent-<session>.jsonl`. A tool record holds the tool, its arguments, the first 4,000 characters of its result and the result's full size, whether it failed, its exit code, and its timing. A closing-message record holds the first 4,000 characters of the message and its full size. Secrets are removed from every string with the same patterns as a prompt, and paths inside the project are made relative. Reticle's own tools are skipped, because the episode log below already keeps them.
+Each record goes to `.reticle/episodes/agent-<session>.jsonl`. A tool record holds the tool, its arguments, the first 4,000 characters of its result and the result's full size, whether it failed, its exit code, and its timing. A closing-message record holds the first 4,000 characters of the message and its full size. Secrets are removed from every string with the same patterns as a prompt, and paths inside the project are made relative. Reticle's own tools are skipped, because the episode log below already keeps them. The prompt-capture switch stops these records too: `"promptCapture": false` or `RETICLE_PROMPT_CAPTURE=0` stops the prompts, the tool calls, the model and the closing messages together.
 
 The daemon also keeps every call to Reticle's own tools in `.reticle/episodes/<connection>.jsonl`, one file for each agent connection. The first line holds the git HEAD, the uncommitted change for each file, and the request. Each line after it holds one call: the tool, its arguments with typed values removed, its whole result or error, its timing, the tab, the agent, and the page events it caused. A field longer than 200,000 characters keeps its start and is named in `truncated`.
 
@@ -72,11 +72,13 @@ A run syncs through `reticle sync`, through the daemon's background sync, or whe
 
 ## Turn it off
 
+Agent capture is the prompts, the tool calls, the model and the closing messages that the agent hooks keep. One switch stops all of it. The episode log is the daemon's record of calls to Reticle's own tools. The journal switch stops it, and the agent's tool calls, model and closing messages, but not the prompts.
+
 | What                                     | How                                          |
 | ---------------------------------------- | -------------------------------------------- |
 | Do not install the hooks                 | `reticle init --no-prompt-capture`           |
-| Stop prompt capture in one project       | `"promptCapture": false` in `.reticle.json`  |
-| Stop prompt capture on this machine      | `RETICLE_PROMPT_CAPTURE=0`                   |
+| Stop all agent capture in one project    | `"promptCapture": false` in `.reticle.json`  |
+| Stop all agent capture on this machine   | `RETICLE_PROMPT_CAPTURE=0`                   |
 | Stop the episode log in one project      | `"journal": false` in `.reticle.json`        |
 | Stop the episode log on this machine     | `RETICLE_JOURNAL=0`                          |
 | Keep requests and closing messages local | `"shareRequests": false` in `.reticle.json`  |

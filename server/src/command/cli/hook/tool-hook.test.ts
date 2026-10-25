@@ -18,6 +18,7 @@ import {
   captureToolCall,
   toolHookAck,
 } from './tool-hook.js';
+import { capturePrompt } from './prompt-hook.js';
 
 function project(config: Record<string, unknown> = { projectId: 'shop-1' }): string {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'reticle-tool-hook-')));
@@ -392,5 +393,40 @@ describe("the agent's closing message", () => {
     expect(by('windsurf')).toMatchObject({ message: { head: 'Planner says done' } });
     // None of them is read as a tool call.
     expect(records(dir).filter((r) => AGENT_TOOL_RECORD === r['kind'])).toHaveLength(0);
+  });
+});
+
+describe('the prompt-capture switch stops every agent record', () => {
+  const tool = { session_id: 's', tool_name: 'Bash', tool_input: { command: 'ls' } };
+  const stop = { session_id: 's', hook_event_name: 'Stop', last_assistant_message: 'Done' };
+  const model = { session_id: 's', hook_event_name: 'SessionStart', model: 'm' };
+  const prompt = { session_id: 's', prompt: 'Add a cart badge' };
+  const all = (dir: string, env: NodeJS.ProcessEnv): string[][] => [
+    ...[tool, stop, model].map((payload) => run({ ...payload, cwd: dir }, env).written),
+    capturePrompt('claude-code', JSON.stringify({ ...prompt, cwd: dir }), {
+      cwd: dir,
+      env,
+      now: () => 10_000,
+    }).written,
+  ];
+
+  it('keeps the tool call, the model, the closing message and the prompt when it is on', () => {
+    const dir = project();
+    expect(all(dir, {}).every((written) => 1 === written.length)).toBe(true);
+    expect(records(dir).map((record) => record['kind'])).toEqual([
+      AGENT_TOOL_RECORD,
+      AGENT_STOP_RECORD,
+      AGENT_MODEL_RECORD,
+    ]);
+  });
+
+  it('keeps none of them with RETICLE_PROMPT_CAPTURE=0 or "promptCapture": false', () => {
+    const off = project({ projectId: 'p', promptCapture: false });
+    expect(all(off, {})).toEqual([[], [], [], []]);
+    const machineOff = project();
+    expect(all(machineOff, { RETICLE_PROMPT_CAPTURE: '0' })).toEqual([[], [], [], []]);
+    for (const dir of [off, machineOff]) {
+      expect(readdirSync(dir)).toEqual(['.reticle.json']);
+    }
   });
 });

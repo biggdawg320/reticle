@@ -8,7 +8,8 @@
  * whether it failed, its exit code, and its timing. Every string passes the secret redaction first.
  *
  * LOCAL ONLY, under the same rules as the episode log: gitignored, swept by retention, never sent
- * as a file (a synced run takes only the model and the closing message from it), and off with the
+ * as a file (a synced run takes only the model and the closing message from it). Off with the
+ * one agent-capture switch (`RETICLE_PROMPT_CAPTURE=0`, `"promptCapture": false`), and off with the
  * journal (`RETICLE_JOURNAL=0`, `"journal": false`). Reticle's own MCP tools are skipped, because
  * the daemon already keeps them in full. Never throws.
  */
@@ -21,7 +22,7 @@ import {
   AgentRecordKind,
   EPISODE_FILE_VERSION,
 } from '@/memory/journal/episode-log.js';
-import { captureRoots } from './prompt-hook.js';
+import { agentCaptureOff, agentCaptureOffIn, captureRoots } from './prompt-hook.js';
 import {
   CODEX_AGENT,
   codexHome,
@@ -251,7 +252,10 @@ interface CaptureIo {
 /** Keep one tool call. Never throws: the `.reticle` roots it wrote to, or none. */
 export function captureToolCall(agent: string, raw: string, io: CaptureIo): { written: string[] } {
   try {
-    if (OFF_VALUES.has((io.env[ReticleEnv.JOURNAL] ?? '').toLowerCase())) {
+    if (
+      agentCaptureOff(io.env) ||
+      OFF_VALUES.has((io.env[ReticleEnv.JOURNAL] ?? '').toLowerCase())
+    ) {
       return { written: [] };
     }
     const payload: unknown = JSON.parse(raw);
@@ -279,7 +283,8 @@ export function captureToolCall(agent: string, raw: string, io: CaptureIo): { wr
     const session = (given ?? UNKNOWN_SESSION).replace(/[^\w-]/g, '_');
     const written: string[] = [];
     for (const root of captureRoots(cwd)) {
-      if (false === projectSetting(dirname(root), JOURNAL_SETTING)) {
+      const projectDir = dirname(root);
+      if (agentCaptureOffIn(projectDir) || false === projectSetting(projectDir, JOURNAL_SETTING)) {
         continue;
       }
       const dir = join(root, ReticleDir.EPISODES_SUBDIR);

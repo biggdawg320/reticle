@@ -147,6 +147,19 @@ function isWithin(outer: string, inner: string): boolean {
   return '' === rel || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
+/**
+ * The one switch for everything the agent hooks keep: prompts, tool calls, the model and the
+ * closing message. `RETICLE_PROMPT_CAPTURE=0` stops it on this machine.
+ */
+export function agentCaptureOff(env: NodeJS.ProcessEnv): boolean {
+  return OFF_VALUES.has((env[ReticleEnv.PROMPT_CAPTURE] ?? '').toLowerCase());
+}
+
+/** The same switch for one project: `"promptCapture": false` in its `.reticle.json`. */
+export function agentCaptureOffIn(projectDir: string): boolean {
+  return false === projectSetting(projectDir, 'promptCapture');
+}
+
 interface CaptureIo {
   readonly cwd: string;
   readonly env: NodeJS.ProcessEnv;
@@ -156,7 +169,7 @@ interface CaptureIo {
 /** Keep one prompt. Never throws: the folders it wrote to, or none. */
 export function capturePrompt(agent: string, raw: string, io: CaptureIo): { written: string[] } {
   try {
-    if (OFF_VALUES.has((io.env[ReticleEnv.PROMPT_CAPTURE] ?? '').toLowerCase())) {
+    if (agentCaptureOff(io.env)) {
       return { written: [] };
     }
     const { prompt, cwd } = promptFromPayload(agent, JSON.parse(raw) as unknown, io.cwd, io.env);
@@ -178,7 +191,7 @@ export function capturePrompt(agent: string, raw: string, io: CaptureIo): { writ
 /** Write one prompt into one `.reticle`. False when the project opted out, or it is a repeat. */
 function keepIn(root: string, agent: string, prompt: string, at: number): boolean {
   const projectDir = dirname(root);
-  if (false === projectSetting(projectDir, 'promptCapture')) {
+  if (agentCaptureOffIn(projectDir)) {
     return false;
   }
   const requestPath = join(root, ReticleDir.REQUEST_FILE);

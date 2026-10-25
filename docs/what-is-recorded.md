@@ -44,7 +44,7 @@ npx @reticlehq/server config --runs on|off --flows on|off --memory on|off
 
 `--memory` covers the coverage ledger and the HUD notes as well, and the notes are the words people typed. **Prompts are shared by default from a linked project.** `reticle init` installs a hook that keeps each prompt you send, redacted, in `.reticle/` ([Prompt capture](prompt-capture.md)). A run written soon after a prompt carries it to the platform, so the dashboard can show what each run was for, and the Harness sends the newest one to the platform planner as a goal. A key in the environment (`RETICLE_API_KEY`) counts as linked. `"shareRequests": false` in `.reticle.json` keeps every request on the machine. An unlinked project sends it nowhere. The prompt files are in `.reticle/.gitignore` either way.
 
-A run also carries the agent's model and, under the same `shareRequests` rule as the prompt, the message the agent closed its turn with. Nothing else from `episodes/` leaves: the files stay on the machine. `RETICLE_JOURNAL=0`, or `"journal": false` in `.reticle.json`, stops the episode log.
+A run also carries the agent's model and, under the same `shareRequests` rule as the prompt, the message the agent closed its turn with. Nothing else from `episodes/` leaves: the files stay on the machine. `"promptCapture": false` in `.reticle.json`, or `RETICLE_PROMPT_CAPTURE=0`, stops all that the agent hooks keep: the prompts, the tool calls, the model and the closing messages. `RETICLE_JOURNAL=0`, or `"journal": false` in `.reticle.json`, stops the episode log.
 
 The Harness runs on the platform, so the platform sees what it drives: each step's result goes there so it can choose the next one. A secret field is sent by name only; its value is typed in on your machine.
 

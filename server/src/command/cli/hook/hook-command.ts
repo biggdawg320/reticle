@@ -25,8 +25,7 @@ import {
 } from '@reticlehq/init';
 import { ReticleDir, ReticleEnv } from '@reticlehq/core';
 import { discoverProjectConfigs } from '@/command/cli/config/config-discovery.js';
-import { projectSetting } from '@/memory/intent/record-request.js';
-import { capturePrompt, hookAck } from './prompt-hook.js';
+import { agentCaptureOff, agentCaptureOffIn, capturePrompt, hookAck } from './prompt-hook.js';
 import { captureToolCall, toolHookAck } from './tool-hook.js';
 import { AT_FLAG, PROMPT_WRITE_ACTION, TOOL_WRITE_ACTION, hookBinFor } from './hook-fast.js';
 import { exportStructure } from './episode-structure.js';
@@ -48,7 +47,6 @@ const DEFAULT_AGENT = PromptHookAgent.CLAUDE_CODE;
 const MAX_STDIN_BYTES = 1024 * 1024;
 /** A hook whose agent never closes stdin must still end, and let the prompt through. */
 const STDIN_WAIT_MS = 3_000;
-const OFF_VALUES: ReadonlySet<string> = new Set(['0', 'false', 'off', 'no']);
 
 const readText = (path: string): string | null => {
   try {
@@ -102,10 +100,10 @@ export function promptCaptureRows(
   claudeCli: boolean,
   home: string = homedir(),
 ): string[] {
-  if (OFF_VALUES.has((env[ReticleEnv.PROMPT_CAPTURE] ?? '').toLowerCase())) {
+  if (agentCaptureOff(env)) {
     return [`off on this machine (${ReticleEnv.PROMPT_CAPTURE})`];
   }
-  if (false === projectSetting(projectDir, 'promptCapture')) {
+  if (agentCaptureOffIn(projectDir)) {
     return ['off in this project ("promptCapture": false in .reticle.json)'];
   }
   // The project only, as `install` reads it: a row says what `install` would do here.

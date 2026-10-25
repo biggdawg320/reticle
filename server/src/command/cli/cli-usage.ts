@@ -242,8 +242,9 @@ const COMMANDS: readonly CommandDoc[] = [
       '  hook prompt --agent <id>   what the agent hook runs; reads the prompt on stdin\n' +
       '  hook tool --agent <id>     what the post-tool hook runs; keeps the call in .reticle/episodes/\n' +
       '  hook export --structure    each snapshot step in .reticle/episodes/ as text-free page structure (JSONL)\n\n' +
-      'Off for one project: "promptCapture": false in .reticle.json. Off on this machine:\n' +
-      'RETICLE_PROMPT_CAPTURE=0. Tool calls follow the journal: "journal": false or RETICLE_JOURNAL=0.',
+      'One switch stops prompts, tool calls, the model and the closing message. Off for one project:\n' +
+      '"promptCapture": false in .reticle.json. Off on this machine: RETICLE_PROMPT_CAPTURE=0.\n' +
+      'Tool calls also stop with the journal: "journal": false or RETICLE_JOURNAL=0.',
   },
   {
     name: 'mcp',
