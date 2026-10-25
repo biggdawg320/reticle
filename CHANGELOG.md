@@ -4,7 +4,7 @@ All notable changes to the **`@reticlehq/*`** packages are documented here (each
 
 ## [Unreleased]
 
-## [3.8.0] — 2026-10-20
+## [3.8.0] — 2026-10-25
 
 **Upgrade note:** update the SDK in your app as well as the CLI. Run `npx @reticlehq/server@latest init` in the app, or update `@reticlehq/browser` and your build plugin. A page that runs an older SDK does not get the fixes below, and the session list now names it.
 
