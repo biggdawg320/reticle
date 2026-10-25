@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { randomUUID } from 'node:crypto';
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { ErrorCode, McpError, type ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { isPredicateParam } from '@reticlehq/engine/question/predicate/predicate-eval.js';
 import { isToonable, resultToToon, MCP_SERVER_NAME } from '@reticlehq/core';
@@ -11,6 +11,7 @@ import {
   describeToolSurface,
   TOOL_SURFACE,
   type ToolSurface,
+  toolAnnotations,
 } from '@/surface/tools/tool-surface.js';
 import { ReticleTool } from '@reticlehq/core';
 import { sharedParamShort } from './shared-params.js';
@@ -240,6 +241,7 @@ type ReticleRegisterTool = (
     description: string;
     inputSchema: z.ZodRawShape;
     outputSchema?: z.ZodRawShape;
+    annotations?: ToolAnnotations;
   },
   handler: (
     args: Record<string, unknown>,
@@ -361,7 +363,12 @@ export function advertisedConfig(
   tool: ToolDef,
   advertised: readonly ToolDef[],
   profile: ToolSurface,
-): { description: string; inputSchema: z.ZodRawShape; outputSchema?: z.ZodRawShape } {
+): {
+  description: string;
+  inputSchema: z.ZodRawShape;
+  outputSchema?: z.ZodRawShape;
+  annotations: ToolAnnotations;
+} {
   // Hybrid is the terse one. NOT `profile !== FULL`, which reads equivalent and is not: it also
   // trims `dynamic`, whose two meta-tools are the ONLY thing that profile advertises — so the
   // instructions for using them (`names:[…]` loads full params on demand) would be cut to a first
@@ -423,6 +430,7 @@ export function advertisedConfig(
         )
       : tool.inputSchema,
     ...(outputSchema !== undefined ? { outputSchema } : {}),
+    annotations: toolAnnotations(tool.name),
   };
 }
 
