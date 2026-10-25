@@ -1,3 +1,0 @@
-### Changed
-
-- **`@reticlehq/server` — a predicate with no `kind` is accepted when its keys name exactly one kind.** Agents often write `expect: { text: "Count is 1" }` or `until: { allOf: [...] }`. Each one was refused and cost a call. Now `{ text: ... }`, `{ allOf: [...] }`, `{ anyOf: [...] }` and `{ not: ... }` read as that kind, and so do keys that only one kind takes, such as `{ testid: "receipt" }` or `{ pathname: "/done" }`. The result is the same predicate as the form with `kind`, so the verdict does not change. Keys that fit more than one kind, such as `{ name: "x" }`, are still refused. The refusal now names the keys it saw and the kinds there are. The result's `normalized` field says which kind Reticle read.

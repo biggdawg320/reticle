@@ -1,3 +1,0 @@
-### Fixed
-
-- **`@reticlehq/browser` — on a fresh page the HUD covered the app before any agent did anything.** After `reticle init`, the first load opened the Agent Log and put a separate "Sign in to try Reticle Harness" card above it. Together they covered about a quarter of the window and the app's own links under it. A first load now shows the dock only. The panel opens when an agent starts to act in the tab, when you press the dock, or on load when you left it open before in this browser. The sign-in ask is now a row inside the Agent Log, not a card over the app. While the HUD is closed, only the dock takes clicks. Helps with [#992](https://github.com/reticlehq/reticle/issues/992).

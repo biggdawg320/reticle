@@ -1,3 +1,0 @@
-### Fixed
-
-- **`@reticlehq/server` — an unwired app with its dev server already running was told to start it.** The agent's first `reticle_session { action: "list" }` said "nothing is listening on the ports Reticle scans" and gave `npm run dev`, so the agent started a second dev server on the next port. The scan had found the running server. The answer then kept only the ports that the build plugin announced or that an earlier session used, and an unwired app has neither. Now a port counts as the project's when the process that listens on it runs in the project's folder. The next action then opens that port with nothing installed. A port that serves a page from another folder is named in the reason. Reticle no longer says that nothing is listening.
