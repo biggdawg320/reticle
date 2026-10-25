@@ -1,0 +1,3 @@
+### Fixed
+
+- **`@reticlehq/react` — an auto-detected store whose `getState` threw was registered anyway, and every state read showed `__error`.** A context provider value shaped like `{ store: { getState, subscribe } }` from a library other than Redux could still pass the shape check, so it was registered under `redux`; every `reticle_look { action: "state" }` afterwards reported that store as `__error` instead of simply not knowing about it. `autoRegisterStores` now probes `getState` once before registering, skips the store when it throws, and retries on a later commit if it becomes readable. Closes [#1683](https://github.com/reticlehq/reticle/issues/1683).

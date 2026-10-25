@@ -248,9 +248,14 @@ export function autoRegisterStores(doc: Document): string[] {
     if (sourceOwner(source) !== undefined) continue;
     if (taken.has(key) || registered.has(key)) continue;
     try {
+      // Probe before registering: a provider value that is store-shaped but belongs to another
+      // library can still throw from getState. Registering it anyway would make every `reticle_state`
+      // read show a broken `redux`/`store` entry forever. Not memoized, so a store that starts
+      // throwing only during setup is retried on the next commit once it becomes readable.
+      store.getState();
       registerStore(key, store);
     } catch {
-      continue; // a store whose getState throws on registration is not worth taking the app down for
+      continue;
     }
     registered.set(key, source);
     added.push(key);
