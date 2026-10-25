@@ -1116,14 +1116,9 @@
       "count": 6
     }
   },
-  "src/features/visual/visual-tools.test.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
   "src/features/visual/visual-tools.ts": {
     "curly": {
-      "count": 23
+      "count": 22
     }
   },
   "src/gate-coverage.test.ts": {
@@ -2594,11 +2589,6 @@
       "count": 2
     }
   },
-  "src/memory/project/root-claims.ts": {
-    "curly": {
-      "count": 3
-    }
-  },
   "src/memory/project/session-root.test.ts": {
     "curly": {
       "count": 1
@@ -2717,11 +2707,6 @@
   "src/portal/bridge/bridge.test-harness.ts": {
     "curly": {
       "count": 4
-    }
-  },
-  "src/portal/bridge/bridge.ts": {
-    "curly": {
-      "count": 25
     }
   },
   "src/portal/bridge/harness-request.ts": {
@@ -2969,11 +2954,6 @@
   "src/portal/session/dev-server/served-document.ts": {
     "curly": {
       "count": 3
-    }
-  },
-  "src/portal/session/end-session-named-id.test.ts": {
-    "curly": {
-      "count": 2
     }
   },
   "src/portal/session/end-session-releases-lease.test.ts": {
@@ -3767,11 +3747,6 @@
       "count": 1
     }
   },
-  "src/surface/tools/assert/assert-journal-verdict.test.ts": {
-    "curly": {
-      "count": 1
-    }
-  },
   "src/surface/tools/assert/assert-repeatable-read.test.ts": {
     "curly": {
       "count": 5
@@ -3865,11 +3840,6 @@
   "src/surface/tools/dynamic-tools.test.ts": {
     "curly": {
       "count": 1
-    }
-  },
-  "src/surface/tools/dynamic-tools.ts": {
-    "curly": {
-      "count": 4
     }
   },
   "src/surface/tools/e2e-surface-drift.test.ts": {
@@ -4143,9 +4113,6 @@
     }
   },
   "src/surface/tools/observe-tools.ts": {
-    "curly": {
-      "count": 4
-    },
     "no-nested-ternary": {
       "count": 3
     }

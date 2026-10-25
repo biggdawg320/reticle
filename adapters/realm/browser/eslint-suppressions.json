@@ -188,11 +188,6 @@
       "count": 8
     }
   },
-  "src/dom/a11y.ts": {
-    "curly": {
-      "count": 71
-    }
-  },
   "src/dom/addressing/refs.ts": {
     "curly": {
       "count": 6
@@ -872,11 +867,6 @@
   "src/registry/store-adapters.test.ts": {
     "curly": {
       "count": 5
-    }
-  },
-  "src/registry/store-adapters.ts": {
-    "curly": {
-      "count": 9
     }
   },
   "src/registry/stores.ts": {

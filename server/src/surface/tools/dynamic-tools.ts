@@ -35,10 +35,29 @@ interface ParamInfo {
   name: string;
   required: boolean;
   description: string;
+  /** Every value the schema accepts, when it is a closed set. */
+  values?: string[];
   /** The smallest value the schema accepts, when it bounds one. */
   min?: number;
   /** The largest value the schema accepts, when it bounds one. */
   max?: number;
+}
+
+/** The schema without the wrappers that do not change the value it accepts. */
+function unwrappedOf(schema: z.ZodTypeAny): z.ZodTypeAny {
+  let inner: z.ZodTypeAny = schema;
+  for (;;) {
+    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
+      inner = inner.unwrap() as z.ZodTypeAny;
+    } else if (inner instanceof z.ZodDefault) {
+      inner = inner.removeDefault() as z.ZodTypeAny;
+    } else if (inner instanceof z.ZodEffects) {
+      inner = inner.innerType() as z.ZodTypeAny;
+    } else {
+      break;
+    }
+  }
+  return inner;
 }
 
 /**
@@ -49,30 +68,46 @@ interface ParamInfo {
  * prose, so the number shown is the number checked and cannot drift from it.
  */
 function boundsOf(schema: z.ZodTypeAny): { min?: number; max?: number } {
-  let inner: z.ZodTypeAny = schema;
-  for (;;) {
-    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
-      inner = inner.unwrap() as z.ZodTypeAny;
-    } else if (inner instanceof z.ZodDefault) {
-      inner = inner.removeDefault() as z.ZodTypeAny;
-    } else if (inner instanceof z.ZodEffects) {
-      inner = inner.innerType() as z.ZodTypeAny;
-    } else break;
+  const inner = unwrappedOf(schema);
+  if (!(inner instanceof z.ZodNumber)) {
+    return {};
   }
-  if (!(inner instanceof z.ZodNumber)) return {};
   const { minValue: min, maxValue: max } = inner;
   return { ...(null === min ? {} : { min }), ...(null === max ? {} : { max }) };
 }
 
+/**
+ * An enum parameter's accepted values, read off the enum that enforces them (#1775).
+ *
+ * `claim` on reticle_session takes `pass | fail | partial`, but its description said only what the
+ * value means, so an agent sent a sentence and the call was refused. Read here rather than written
+ * into prose, so the values shown are the values checked and cannot drift from them.
+ */
+function valuesOf(schema: z.ZodTypeAny): string[] | undefined {
+  const inner = unwrappedOf(schema);
+  if (!(inner instanceof z.ZodEnum)) {
+    return undefined;
+  }
+  const options: unknown = inner.options;
+  if (!Array.isArray(options)) {
+    return undefined;
+  }
+  return options.filter((option: unknown): option is string => 'string' === typeof option);
+}
+
 /** Compact param list from a tool's zod shape — name/required/description (the description already
- * carries the type and any enum hints, so no JSON-Schema machinery is needed), plus numeric bounds. */
+ * carries the type, so no JSON-Schema machinery is needed), plus closed values and numeric bounds. */
 function paramInfo(shape: z.ZodRawShape): ParamInfo[] {
-  return Object.entries(shape).map(([name, schema]) => ({
-    name,
-    required: !schema.isOptional(),
-    description: schema.description ?? '',
-    ...boundsOf(schema),
-  }));
+  return Object.entries(shape).map(([name, schema]) => {
+    const values = valuesOf(schema);
+    return {
+      name,
+      required: !schema.isOptional(),
+      description: schema.description ?? '',
+      ...(values === undefined ? {} : { values }),
+      ...boundsOf(schema),
+    };
+  });
 }
 
 /**
@@ -262,8 +297,9 @@ export function buildDynamicTools(
       return Promise.resolve({
         tools: names.map((n) => {
           const t = byName.get(n);
-          if (t !== undefined)
+          if (t !== undefined) {
             return { name: n, description: t.description, params: paramInfo(t.inputSchema) };
+          }
           // `reticle_run` has answered a merged name with its replacement for a while; the tool
           // asked to DISCOVER tools still said "unknown tool", which is the wrong answer in the one
           // place an agent goes to resolve a name it is unsure of. Same redirect, same derivation.
@@ -327,7 +363,9 @@ export function buildDynamicTools(
         // ...and for 22 of those names the capability DOES exist, it just moved when tools merged.
         // Answering "unknown tool" there is simply wrong; see merged-name-redirect.
         const absent = explainAbsent(name);
-        if ('unknown tool' !== absent.error) return absent;
+        if ('unknown tool' !== absent.error) {
+          return absent;
+        }
         return { error: `unknown tool '${name}'`, available: reachable.map((t) => t.name) };
       }
       // The outer aim, forwarded ONLY to a tool that declares a session — injecting it into one that

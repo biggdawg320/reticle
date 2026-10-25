@@ -92,3 +92,26 @@ export function peekHelloPage(text: string): RefusedPage | null {
     return null;
   }
 }
+
+/**
+ * The `kind` and event `type` of a frame that failed the schema, for the log: never its payload,
+ * which can carry anything the page sent. Each is a bounded string or absent.
+ */
+export function peekFrameKind(text: string): { kind?: string; eventType?: string } {
+  const short = (v: unknown): string | undefined =>
+    'string' === typeof v ? v.slice(0, MAX_LOGGED_FRAME_FIELD) : undefined;
+  try {
+    const json = JSON.parse(text) as { kind?: unknown; event?: { type?: unknown } } | null;
+    const kind = short(json?.kind);
+    const eventType = short(json?.event?.type);
+    return {
+      ...(kind === undefined ? {} : { kind }),
+      ...(eventType === undefined ? {} : { eventType }),
+    };
+  } catch {
+    return {};
+  }
+}
+
+/** How much of a frame's `kind` or event `type` the drop log keeps. */
+const MAX_LOGGED_FRAME_FIELD = 64;
