@@ -19,3 +19,9 @@ export const PROXY_ID_PARAM = 'proxyId';
  * proxy that reconnects inside this window keeps them.
  */
 export const AGENT_DETACH_GRACE_MS = 10_000;
+/**
+ * How long the daemon waits for a leased tab to close before it gives up on it. After this time it
+ * frees the slot and closes the browser that holds the tab, so a close that never returns cannot
+ * keep the tab open.
+ */
+export const LEASE_CLOSE_TIMEOUT_MS = 5_000;

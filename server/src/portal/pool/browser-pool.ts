@@ -10,7 +10,9 @@
  * the thin Playwright adapter that satisfies these interfaces lives separately.
  */
 
-import { unreachableUrlIn, type SeedStorage } from '@reticlehq/core';
+import { LEASE_CLOSE_TIMEOUT_MS, unreachableUrlIn, type SeedStorage } from '@reticlehq/core';
+import { log } from '@/log.js';
+import { closeLeaseTab, LEASE_CLOSE_TIMED_OUT, settledWithin } from './bounded-close.js';
 import { seedStorageInto, targetOriginOf } from './storage-seed.js';
 import { installLeaseMarker, leaseMarkerOf } from './lease-marker-stamp.js';
 import { grantLeasePermissions, readNotificationPermission } from './context-permissions.js';
@@ -795,7 +797,7 @@ export class BrowserPool {
     } catch (err) {
       // Setup failed after we claimed the slot — give it back so a queued acquire isn't stuck, and
       // close the half-open context.
-      if (context !== undefined) await context.close().catch(() => undefined);
+      if (context !== undefined) await settledWithin(context.close(), LEASE_CLOSE_TIMEOUT_MS);
       this.#releaseSlot();
       throw err;
     }
@@ -851,12 +853,27 @@ export class BrowserPool {
     for (const [registered, leaseId] of this.#aliases) {
       if (leaseId === sessionId) this.#aliases.delete(registered);
     }
-    // Disposed with the lease, which is what "for that lease only" means. Best-effort: a context
-    // that is already gone (a crash) makes the disposal moot, not a reason to fail the release.
-    await lease.hostStub?.dispose().catch(() => undefined);
-    await lease.context.close().catch(() => undefined);
+    // Bounded: a close that never returned held the slot and kept the tab open after the agent left.
+    const closed = await closeLeaseTab(lease, LEASE_CLOSE_TIMEOUT_MS);
     this.#releaseSlot();
+    if (!closed) {
+      await this.#dropWedgedBrowser(sessionId, lease.headed);
+    }
     await this.#closeIfIdle();
+  }
+
+  /** Close the browser of a tab that did not close in time, unless another lease still uses it. */
+  async #dropWedgedBrowser(sessionId: string, headed: boolean): Promise<void> {
+    const slot = headed ? this.#headed : this.#headless;
+    const shared = [...this.#active.values()].some((other) => other.headed === headed);
+    const browser = slot.browser;
+    const drop = !shared && browser !== undefined && slot.launching === undefined;
+    log(LEASE_CLOSE_TIMED_OUT, { lease: sessionId, browserClosed: drop });
+    if (!drop) {
+      return;
+    }
+    slot.browser = undefined;
+    await settledWithin(browser.close(), LEASE_CLOSE_TIMEOUT_MS);
   }
 
   /**
@@ -870,7 +887,7 @@ export class BrowserPool {
       const browser = slot.browser;
       if (browser === undefined || slot.launching !== undefined) continue;
       slot.browser = undefined;
-      await browser.close().catch(() => undefined);
+      await settledWithin(browser.close(), LEASE_CLOSE_TIMEOUT_MS);
     }
   }
 
